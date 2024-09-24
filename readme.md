@@ -24,3 +24,6 @@ python sim_odom.py
 cd src/sensor_simulator
 rviz -d rviz.rviz
 ```
+
+demo:
+![Demo GIF](demo.gif)
