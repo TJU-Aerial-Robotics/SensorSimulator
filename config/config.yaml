@@ -1,0 +1,28 @@
+ply_file: "/home/lu/用完删除/test/realworld.ply"
+odom_topic: "/odom"
+depth_topic: "/depth_image"
+lidar_topic: "/lidar_points"
+
+render_depth: true
+depth_fps: 10
+
+render_lidar: true
+lidar_fps: 10
+
+camera:
+  fx: 80.0             # focal length x
+  fy: 80.0             # focal length y
+  cx: 80.0             # principal point x (image center)
+  cy: 45.0             # principal point y (image center)
+  image_width: 160
+  image_height: 90
+  max_depth_dist: 20.0
+  normalize_depth: false
+
+lidar:
+  vertical_lines: 16             # 纵向16线
+  vertical_angle_start: -15.0    # 起始垂直角度
+  vertical_angle_end: 15.0       # 结束垂直角度
+  horizontal_angle: 360          # 水平360线
+  horizontal_resolution: 1.0     # 水平分辨率为1度
+  max_lidar_dist: 50.0
