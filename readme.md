@@ -26,4 +26,6 @@ rviz -d rviz.rviz
 ```
 
 demo:
+深度图0.02s, 点云0.01s
+
 ![Demo GIF](demo.gif)
