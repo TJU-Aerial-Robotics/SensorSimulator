@@ -62,7 +62,7 @@ public:
             return;
         }
 
-        float resolution = 0.2f;
+        float resolution = config["resolution"].as<float>();
         octree = pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>::Ptr(
             new pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>(resolution));
         octree->setInputCloud(cloud);
@@ -73,6 +73,7 @@ public:
         odom_sub_ = nh_.subscribe(odom_topic, 1, &SensorSimulator::odomCallback, this);
         timer_depth_ = nh_.createTimer(ros::Duration(1 / depth_fps), &SensorSimulator::timerDepthCallback, this);
         timer_lidar_ = nh_.createTimer(ros::Duration(1 / lidar_fps), &SensorSimulator::timerLidarCallback, this);
+        printf("Simulation Ready! \n");
         ros::spin();
     }
 

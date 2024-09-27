@@ -1,4 +1,4 @@
-ply_file: "/home/lu/用完删除/test/realworld.ply"
+ply_file: "/home/lu/用完删除/SensorSimulator/src/SensorSimulator/realworld_dense.ply"
 odom_topic: "/odom"
 depth_topic: "/depth_image"
 lidar_topic: "/lidar_points"
@@ -8,6 +8,8 @@ depth_fps: 10
 
 render_lidar: true
 lidar_fps: 10
+
+resolution: 0.1        # 地图分辨率
 
 camera:
   fx: 80.0             # focal length x
