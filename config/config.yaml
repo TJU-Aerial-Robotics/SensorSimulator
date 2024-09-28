@@ -29,4 +29,4 @@ lidar:
   vertical_angle_end: 15.0       # 结束垂直角度
   horizontal_angle: 360          # 水平360线
   horizontal_resolution: 1.0     # 水平分辨率为1度
-  max_lidar_dist: 50.0
+  max_lidar_dist: 20.0

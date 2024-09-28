@@ -82,7 +82,8 @@ pcl::PointCloud<pcl::PointXYZ> SensorSimulator::renderLidarPointcloud() {
                 pcl::PointXYZ point = cloud->points[pointIdxVec[0]];
                 Eigen::Vector3f point_in_world = point.getVector3fMap();
                 Eigen::Vector3f point_in_body = R_cw * (point_in_world - pos);
-                line_clouds[v].points.push_back(pcl::PointXYZ(point_in_body.x(), point_in_body.y(), point_in_body.z()));
+                if (max_lidar_dist > point_in_body.norm())
+                    line_clouds[v].points.push_back(pcl::PointXYZ(point_in_body.x(), point_in_body.y(), point_in_body.z()));
             }
         }
     }

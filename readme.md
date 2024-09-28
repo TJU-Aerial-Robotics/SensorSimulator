@@ -25,6 +25,12 @@ cd src/sensor_simulator
 rviz -d rviz.rviz
 ```
 
+其他工具：
+```
+1. 点云裁剪：map_process.py
+2. 点云扩充：map_expand.py
+```
+
 demo:
 深度图0.02s, 点云0.01s
 
