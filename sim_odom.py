@@ -16,7 +16,7 @@ def publish_odometry():
     x_position = 0.0
     y_position = 10.0
     z_position = 1.6
-    velocity = 1.0  # m/s
+    velocity = 2.0  # m/s
 
     roll = 0.0
     pitch = 0.0

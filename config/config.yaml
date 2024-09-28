@@ -9,6 +9,8 @@ depth_fps: 10
 render_lidar: true
 lidar_fps: 10
 
+expand_x_times: 0      # x方向复制次数
+expand_y_times: 0      # y方向复制次数
 resolution: 0.1        # 地图分辨率
 
 camera:

@@ -99,6 +99,42 @@ pcl::PointCloud<pcl::PointXYZ> SensorSimulator::renderLidarPointcloud() {
     return lidar_points;
 }
 
+// TODO: 不能像python那样用一个向量一次性全算吗？
+void SensorSimulator::expand_cloud(pcl::PointCloud<pcl::PointXYZ>::Ptr expanded_cloud, int direction) {
+    auto start = std::chrono::high_resolution_clock::now();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_temp(new pcl::PointCloud<pcl::PointXYZ>());
+    *cloud_temp = *expanded_cloud;
+    pcl::PointXYZ min_point, max_point;
+    pcl::getMinMax3D(*expanded_cloud, min_point, max_point);
+
+    float min_value = (direction == 0) ? min_point.x : min_point.y;
+    float max_value = (direction == 0) ? max_point.x : max_point.y;
+
+    // 镜像原始点云并添加到扩展点云中
+    for (const auto& point : cloud_temp->points) {
+        pcl::PointXYZ mirrored_point = point;
+        if (direction == 0) {
+            mirrored_point.x = 2 * min_value - point.x;  // 以 x 轴最小值为轴进行镜像
+        } else {
+            mirrored_point.y = 2 * min_value - point.y;  // 以 y 轴最小值为轴进行镜像
+        }
+        expanded_cloud->push_back(mirrored_point);
+    }
+
+    // 计算偏移量，保证方向上的最小值为0
+    float offset = max_value - min_value;
+    for (auto& point : expanded_cloud->points) {
+        if (direction == 0) {
+            point.x += offset;
+        } else {
+            point.y += offset;
+        }
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    // std::cout << "点云扩张一次耗时: " << elapsed.count() << " 秒" << std::endl; // 输出耗时
+}
+
 
 void SensorSimulator::timerDepthCallback(const ros::TimerEvent&) {
     if (!odom_init || !render_depth)

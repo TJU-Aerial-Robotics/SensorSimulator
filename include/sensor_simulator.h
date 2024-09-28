@@ -3,6 +3,8 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
 #include <pcl/point_cloud.h>
+#include <pcl/common/common.h>
+#include <pcl/common/eigen.h>
 #include <pcl/octree/octree_search.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -50,19 +52,34 @@ public:
         std::string depth_topic = config["depth_topic"].as<std::string>();
         std::string lidar_topic = config["lidar_topic"].as<std::string>();
 
-        cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
+        float resolution = config["resolution"].as<float>();
+        int expand_y_times = config["expand_y_times"].as<int>();
+        int expand_x_times = config["expand_x_times"].as<int>();
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr orig_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+        printf("1.Reading Point Cloud... \n");
 
         // if (pcl::io::loadPCDFile("/home/lu/用完删除/test/map.pcd", *cloud) == -1) {
         //     PCL_ERROR("Couldn't read PLY file \n");
         //     return;
         // }
 
-        if (pcl::io::loadPLYFile(ply_file, *cloud) == -1) {
+        if (pcl::io::loadPLYFile(ply_file, *orig_cloud) == -1) {
             PCL_ERROR("Couldn't read PLY file \n");
             return;
         }
+        
+        printf("2.Processing... \n");
 
-        float resolution = config["resolution"].as<float>();
+        cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
+        *cloud = *orig_cloud;
+        for (int i = 0; i < expand_x_times; ++i) {
+            expand_cloud(cloud, 0);
+        }
+        for (int i = 0; i < expand_y_times; ++i) {
+            expand_cloud(cloud, 1);
+        }
+
         octree = pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>::Ptr(
             new pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>(resolution));
         octree->setInputCloud(cloud);
@@ -73,7 +90,7 @@ public:
         odom_sub_ = nh_.subscribe(odom_topic, 1, &SensorSimulator::odomCallback, this);
         timer_depth_ = nh_.createTimer(ros::Duration(1 / depth_fps), &SensorSimulator::timerDepthCallback, this);
         timer_lidar_ = nh_.createTimer(ros::Duration(1 / lidar_fps), &SensorSimulator::timerLidarCallback, this);
-        printf("Simulation Ready! \n");
+        printf("3.Simulation Ready! \n");
         ros::spin();
     }
 
@@ -86,6 +103,8 @@ public:
     void timerDepthCallback(const ros::TimerEvent &);
 
     void timerLidarCallback(const ros::TimerEvent &);
+
+    void expand_cloud(pcl::PointCloud<pcl::PointXYZ>::Ptr expanded_cloud, int direction = 0);
 
 private:
     bool render_depth{false};
