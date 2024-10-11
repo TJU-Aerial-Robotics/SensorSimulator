@@ -13,11 +13,16 @@ find_package(catkin REQUIRED COMPONENTS
         cv_bridge
 )
 find_package(Eigen3 REQUIRED)
-find_package(PCL 1.10 REQUIRED)
+find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(OpenMP)
 find_package(yaml-cpp REQUIRED)
 message(WARNING "OpenCV_VERSION: ${OpenCV_VERSION}")
+
+# CUDA
+find_package(CUDA REQUIRED)
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_86,code=sm_86")
+
 ## Declare a catkin package
 catkin_package(
         INCLUDE_DIRS include
@@ -35,8 +40,13 @@ include_directories(
 )
 
 add_executable(sensor_simulator src/test_simulator.cpp src/sensor_simulator.cpp)
-
-# 链接PCL库到可执行文件
 target_link_libraries(sensor_simulator ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} OpenMP::OpenMP_CXX yaml-cpp)
 
 target_compile_definitions(sensor_simulator PRIVATE CONFIG_FILE_PATH="${CMAKE_SOURCE_DIR}/config/config.yaml")
+
+
+cuda_add_library(raycast_cuda src/sensor_simulator.cu)
+target_link_libraries(raycast_cuda ${CUDA_LIBRARIES})
+
+add_executable(sensor_simulator_cuda src/test_cuda.cpp)
+target_link_libraries(sensor_simulator_cuda ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} raycast_cuda yaml-cpp)
