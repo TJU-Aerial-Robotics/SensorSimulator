@@ -5,11 +5,14 @@ using namespace raycast;
 
 int main() {
     // 参数设置
-    float resolution = 1.0f; // 分辨率
+    float resolution = 0.2f; // 分辨率
     Vector3d origin(0.0f, 0.0f, 0.0f); // 原点
-    int grid_size_yz = 20; // 网格尺寸
-    int grid_size_z = 10; // 网格尺寸
-    CalculateVox2Idx();
+    Vector3d map_size(10, 10, 10); // 原点
+    GridMap* grid_map = new GridMap(origin, resolution, map_size);
+    CameraParams* camera = new CameraParams();
+
+    cv::Mat depth_image;
+    depth_image = rayCast(grid_map, camera);
 
     return 0;
 }
