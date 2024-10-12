@@ -1,3 +1,5 @@
+# 真实环境点云/深度图仿真(支持CUDA)
+
 依赖：
 
 ROS; OpenCV; PCL; yaml-cpp
@@ -13,8 +15,13 @@ catkin build
 运行：
 ```angular2html
 source devel/setup.bash
+# CPU版本
 rosrun sensor_simulator sensor_simulator
+# GPU版本
+rosrun sensor_simulator sensor_simulator_cuda
 ```
+
+传感器参数以及点云环境修改见config
 
 仿真位置发布：
 ```angular2html
@@ -32,12 +39,14 @@ rviz -d rviz.rviz
 ```
 
 demo:
+
+cpu 版本 (i7-9700)：
 深度图0.02s, 点云0.01s
+
+gpu 版本 (GTX3060)：
+深度图0.001s, 点云0.001s
 
 ![Demo GIF](demo.gif)
 
-TODO:
-
-1. CUDA+栅格地图索引
-
-2. 等改为栅格地图以后，取消对地图的复制，而是对栅格索引变到有效范围内，实现无限的地图
+注释:  
+1. CPU版本地图有边界（可选择复制地图几份），GPU版本无边界

@@ -1,4 +1,4 @@
-ply_file: "/home/lu/用完删除/SensorSimulator/src/SensorSimulator/realworld.ply"
+ply_file: "/home/lu/4.swarm_mission/SensorSimulator/src/SensorSimulator/realworld.ply"
 odom_topic: "/odom"
 depth_topic: "/depth_image"
 lidar_topic: "/lidar_points"

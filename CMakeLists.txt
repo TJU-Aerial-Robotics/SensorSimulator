@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(sensor_simulator)
 
-set(CMAKE_PREFIX_PATH "/opt/ros/noetic")
-set(CMAKE_MODULE_PATH "${CMAKE_PREFIX_PATH}/share/catkin/cmake")
-
 ## Find catkin and any catkin packages
 find_package(catkin REQUIRED COMPONENTS
         roscpp
@@ -21,7 +18,10 @@ message(WARNING "OpenCV_VERSION: ${OpenCV_VERSION}")
 
 # CUDA
 find_package(CUDA REQUIRED)
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_86,code=sm_86")
+# Query the GPU architecture
+cuda_select_nvcc_arch_flags(ARCH_FLAGS)
+message(WARNING "CUDA Architecture: ${ARCH_FLAGS}")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${ARCH_FLAGS}")
 
 ## Declare a catkin package
 catkin_package(
