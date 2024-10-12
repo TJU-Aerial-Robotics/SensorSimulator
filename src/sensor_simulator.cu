@@ -150,7 +150,7 @@ namespace raycast
                     break;
                 }
 
-                if (ray_length > camera_param.max_depth_dist || occupied == -1){
+                if (ray_length > camera_param.max_depth_dist){
                     if (camera_param.normalize_depth)
                         ray_length = ray_length / camera_param.max_depth_dist;
                     
@@ -239,7 +239,7 @@ namespace raycast
                     break;
                 }
 
-                if (ray_length > lidar_param.max_lidar_dist || occupied == -1){
+                if (ray_length > lidar_param.max_lidar_dist){
                     break;
                 }
             }
