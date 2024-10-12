@@ -9,10 +9,10 @@ depth_fps: 30
 render_lidar: true
 lidar_fps: 10
 
-expand_x_times: 0      # x方向复制次数
-expand_y_times: 0      # y方向复制次数
+expand_x_times: 0      # x方向复制次数（cuda版不使用）
+expand_y_times: 0      # y方向复制次数（cuda版不使用）
 resolution: 0.1        # 地图分辨率
-occupy_threshold: 0    # 大于多少个点才认为占据
+occupy_threshold: 0    # 大于多少个点才认为占据（cpu版不使用）
 
 camera:
   fx: 80.0             # focal length x
