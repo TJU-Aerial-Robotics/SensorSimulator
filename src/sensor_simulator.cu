@@ -259,15 +259,18 @@ namespace raycast
         
         cudaDeviceSynchronize();
 
+        // NOTE: 先分配内存比push_back快很多！but这个for循环去不掉了
         pcl::PointCloud<pcl::PointXYZ> lidar_points;
-
+        lidar_points.points.resize(num_elements);
+        size_t valid_point_count = 0;
         for (int i = 0; i < lidar_param->vertical_lines; ++i) {
             for (int j = 0; j < lidar_param->horizontal_num; ++j) {
                 Vector3f point = point_values[i * lidar_param->horizontal_num + j];
                 if (point.x != 0 || point.y != 0 || point.z != 0)
-                    lidar_points.points.push_back(pcl::PointXYZ(point.x, point.y, point.z));
+                    lidar_points.points[valid_point_count++] = pcl::PointXYZ(point.x, point.y, point.z);
             }
         }
+        lidar_points.points.resize(valid_point_count);
         
         cudaFree(point_values);
         return lidar_points;
