@@ -89,8 +89,11 @@ namespace raycast
             vox.x += grid_size_x_;
         while (vox.y < 0)
             vox.y += grid_size_y_;
-        while (vox.z > grid_size_z_ || vox.z < 0)
-            return -1;
+
+        if (vox.z > grid_size_z_)
+            return 0;
+        if (vox.z < 0)
+            return 1;
 
         int idx = Vox2Idx(vox);
         if (map_cuda_[idx] > occupy_threshold_)
@@ -146,7 +149,10 @@ namespace raycast
 
                 if (occupied == 1)
                 {
-                    depth = point_x;
+                    Vector3f point_body = Vector3f(point_x, point_y, point_z);
+                    Vector3i vox_body = grid_map.Pos2Vox(point_body);  // 栅格化避免平面变曲面
+                    point_body = grid_map.Vox2Pos(vox_body);
+                    depth = point_body.x;
                     break;
                 }
 
