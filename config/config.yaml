@@ -4,7 +4,7 @@ depth_topic: "/depth_image"
 lidar_topic: "/lidar_points"
 
 render_depth: true
-depth_fps: 10
+depth_fps: 30
 
 render_lidar: true
 lidar_fps: 10
@@ -12,6 +12,7 @@ lidar_fps: 10
 expand_x_times: 0      # x方向复制次数
 expand_y_times: 0      # y方向复制次数
 resolution: 0.1        # 地图分辨率
+occupy_threshold: 0    # 大于多少个点才认为占据
 
 camera:
   fx: 80.0             # focal length x
@@ -27,6 +28,6 @@ lidar:
   vertical_lines: 16             # 纵向16线
   vertical_angle_start: -15.0    # 起始垂直角度
   vertical_angle_end: 15.0       # 结束垂直角度
-  horizontal_angle: 360          # 水平360线
-  horizontal_resolution: 1.0     # 水平分辨率为1度
+  horizontal_num: 360            # 水平360点
+  horizontal_resolution: 1.0     # 水平分辨率为1度，horizontal_resolution * horizontal_num = 360
   max_lidar_dist: 20.0

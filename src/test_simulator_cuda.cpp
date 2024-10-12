@@ -1,0 +1,162 @@
+#include <pcl/io/pcd_io.h>
+#include <pcl/io/ply_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/common/common.h>
+#include <pcl/common/eigen.h>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <opencv2/opencv.hpp>
+#include <ros/ros.h>
+#include <nav_msgs/Odometry.h>
+#include <sensor_msgs/Image.h>
+#include <pcl_ros/point_cloud.h>
+#include <cv_bridge/cv_bridge.h>
+#include <iostream>
+#include <vector>
+#include <yaml-cpp/yaml.h>
+#include "sensor_simulator.cuh"
+
+using namespace raycast;
+
+class SensorSimulator {
+public:
+    SensorSimulator(ros::NodeHandle &nh) : nh_(nh) {
+        YAML::Node config = YAML::LoadFile(CONFIG_FILE_PATH);
+        // 读取camera参数
+        camera = new CameraParams();
+        camera->fx = config["camera"]["fx"].as<float>();
+        camera->fy = config["camera"]["fy"].as<float>();
+        camera->cx = config["camera"]["cx"].as<float>();
+        camera->cy = config["camera"]["cy"].as<float>();
+        camera->image_width = config["camera"]["image_width"].as<int>();
+        camera->image_height = config["camera"]["image_height"].as<int>();
+        camera->max_depth_dist = config["camera"]["max_depth_dist"].as<float>();
+        camera->normalize_depth = config["camera"]["normalize_depth"].as<bool>();
+
+        // 读取lidar参数
+        lidar = new LidarParams();
+        lidar->vertical_lines = config["lidar"]["vertical_lines"].as<int>();
+        lidar->vertical_angle_start = config["lidar"]["vertical_angle_start"].as<float>();
+        lidar->vertical_angle_end = config["lidar"]["vertical_angle_end"].as<float>();
+        lidar->horizontal_num = config["lidar"]["horizontal_num"].as<int>();
+        lidar->horizontal_resolution = config["lidar"]["horizontal_resolution"].as<float>();
+        lidar->max_lidar_dist = config["lidar"]["max_lidar_dist"].as<float>();
+
+        render_lidar = config["render_lidar"].as<bool>();
+        render_depth = config["render_depth"].as<bool>();
+        float depth_fps = config["depth_fps"].as<float>();
+        float lidar_fps = config["lidar_fps"].as<float>();
+
+        std::string ply_file = config["ply_file"].as<std::string>();
+        std::string odom_topic = config["odom_topic"].as<std::string>();
+        std::string depth_topic = config["depth_topic"].as<std::string>();
+        std::string lidar_topic = config["lidar_topic"].as<std::string>();
+
+        float resolution = config["resolution"].as<float>();
+        int occupy_threshold = config["occupy_threshold"].as<int>();
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+        printf("1.Reading Point Cloud... \n");
+        if (pcl::io::loadPLYFile(ply_file, *cloud) == -1) {
+            PCL_ERROR("Couldn't read PLY file \n");
+        }
+        printf("2.Reading OK! Mapping... \n");
+        grid_map = new GridMap(cloud, resolution, occupy_threshold);
+
+        // ROS
+        image_pub_ = nh_.advertise<sensor_msgs::Image>(depth_topic, 1);
+        point_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>(lidar_topic, 1);
+        odom_sub_ = nh_.subscribe(odom_topic, 1, &SensorSimulator::odomCallback, this);
+        timer_depth_ = nh_.createTimer(ros::Duration(1 / depth_fps), &SensorSimulator::timerDepthCallback, this);
+        timer_lidar_ = nh_.createTimer(ros::Duration(1 / lidar_fps), &SensorSimulator::timerLidarCallback, this);
+        printf("3.Simulation Ready! \n");
+        ros::spin();
+    }
+
+    void odomCallback(const nav_msgs::Odometry::ConstPtr &msg);
+
+    void timerDepthCallback(const ros::TimerEvent &);
+
+    void timerLidarCallback(const ros::TimerEvent &);
+
+private:
+    bool render_depth{false};
+    bool render_lidar{false};
+    bool odom_init{false};
+    Eigen::Quaternionf quat;
+    Eigen::Vector3f pos;
+
+    CameraParams* camera;
+    LidarParams* lidar;
+    GridMap* grid_map;
+    
+    ros::NodeHandle nh_;
+    ros::Publisher image_pub_, point_cloud_pub_;
+    ros::Subscriber odom_sub_;
+    ros::Timer timer_depth_, timer_lidar_;
+};
+
+
+void SensorSimulator::timerDepthCallback(const ros::TimerEvent&) {
+    if (!odom_init || !render_depth)
+        return;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    cudaMat::SE3<float> T_wc(quat.w(), quat.x(), quat.y(), quat.z(), pos.x(), pos.y(), pos.z());
+    cv::Mat depth_image;
+    depth_image = renderDepthImage(grid_map, camera, T_wc);
+    
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    // std::cout << "生成图像耗时: " << elapsed.count() << " 秒" << std::endl;
+
+    sensor_msgs::Image ros_image;
+    cv_bridge::CvImage cv_image;
+    cv_image.header.stamp = ros::Time::now();
+    cv_image.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+    cv_image.image = depth_image;
+    cv_image.toImageMsg(ros_image);
+    image_pub_.publish(ros_image);
+}
+
+void SensorSimulator::timerLidarCallback(const ros::TimerEvent&) {
+    if (!odom_init || !render_lidar)
+        return;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    cudaMat::SE3<float> T_wc(quat.w(), quat.x(), quat.y(), quat.z(), pos.x(), pos.y(), pos.z());
+    pcl::PointCloud<pcl::PointXYZ> lidar_points;
+    lidar_points = renderLidarPointcloud(grid_map, lidar, T_wc);
+    
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    // std::cout << "生成雷达耗时: " << elapsed.count() << " 秒" << std::endl;
+
+    sensor_msgs::PointCloud2 output;
+    pcl::toROSMsg(lidar_points, output);
+    output.header.stamp = ros::Time::now();
+    output.header.frame_id = "world";
+    point_cloud_pub_.publish(output);
+}
+
+void SensorSimulator::odomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
+    quat.x() = msg->pose.pose.orientation.x;
+    quat.y() = msg->pose.pose.orientation.y;
+    quat.z() = msg->pose.pose.orientation.z;
+    quat.w() = msg->pose.pose.orientation.w;
+
+    pos.x() = msg->pose.pose.position.x;
+    pos.y() = msg->pose.pose.position.y;
+    pos.z() = msg->pose.pose.position.z;
+
+    odom_init = true;
+}
+
+int main(int argc, char** argv) {
+    ros::init(argc, argv, "sensor_simulator_node");
+    ros::NodeHandle nh;
+
+    SensorSimulator sensor_simulator(nh);
+    return 0;
+}

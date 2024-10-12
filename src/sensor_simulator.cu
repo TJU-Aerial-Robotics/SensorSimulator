@@ -2,8 +2,16 @@
 
 namespace raycast
 {   
-    GridMap::GridMap(Vector3d origin, double resolution, Vector3d map_size){
-        // 改成地图在外面创建好，直接传进来
+    GridMap::GridMap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float resolution, int occupy_threshold = 1){
+        
+        Eigen::Vector4f min_pt, max_pt;
+        pcl::getMinMax3D(*cloud, min_pt, max_pt);
+        float length = max_pt(0) - min_pt(0);  // X方向的长度
+        float width = max_pt(1) - min_pt(1);   // Y方向的宽度
+        float height = max_pt(2) - min_pt(2);  // Z方向的高度
+        Vector3f origin(min_pt(0), min_pt(1), min_pt(2));
+        Vector3f map_size(length, width, height);
+
         origin_x_ = origin.x;
         origin_y_ = origin.y;
         origin_z_ = origin.z;
@@ -20,7 +28,7 @@ namespace raycast
         grid_size_y_ = grid_size.y, 
         grid_size_z_ = grid_size.z, 
         grid_size_yz_ = grid_size.y * grid_size.z;
-        occupy_threshold = 1;
+        occupy_threshold_ = occupy_threshold;
         raycast_step_ = resolution;
 
         int *h_map = new int[grid_total_size];
@@ -28,7 +36,13 @@ namespace raycast
         {
             h_map[i] = 0;
         }
-        // 地图赋值
+
+        for (size_t i = 0; i < cloud->points.size(); i++)
+        {
+            Vector3f point(cloud->points[i].x, cloud->points[i].y, cloud->points[i].z);
+            int idx = Vox2Idx(Pos2Vox(point));
+            h_map[idx]++;
+        }
 
         cudaMalloc((void **)&map_cuda_, grid_total_size * sizeof(int));
         cudaMemcpy(map_cuda_, h_map, grid_total_size * sizeof(int), cudaMemcpyHostToDevice);
@@ -36,7 +50,7 @@ namespace raycast
         delete[] h_map;
     }
 
-    __device__ Vector3i GridMap::Pos2Vox(const Vector3d &pos)
+    __host__ __device__ Vector3i GridMap::Pos2Vox(const Vector3f &pos)
     {
         Vector3i vox;
         vox.x = floor((pos.x - origin_x_) / resolution_);
@@ -45,45 +59,46 @@ namespace raycast
         return vox;
     }
 
-    __device__ Vector3d GridMap::Vox2Pos(const Vector3i &vox)
+    __host__ __device__ Vector3f GridMap::Vox2Pos(const Vector3i &vox)
     {
-        Vector3d pos;
+        Vector3f pos;
         pos.x = (vox.x + 0.5f) * resolution_ + origin_x_;
         pos.y = (vox.y + 0.5f) * resolution_ + origin_y_;
         pos.z = (vox.z + 0.5f) * resolution_ + origin_z_;
         return pos;
     }
 
-    __device__ int GridMap::Vox2Idx(const Vector3i &vox)
+    __host__ __device__ int GridMap::Vox2Idx(const Vector3i &vox)
     {
         return vox.x * grid_size_yz_ + vox.y * grid_size_z_ + vox.z;
     }
 
-    __device__ Vector3i GridMap::Idx2Vox(int idx)
+    __host__ __device__ Vector3i GridMap::Idx2Vox(int idx)
     {
         return Vector3i(idx / grid_size_yz_, (idx % grid_size_yz_) / grid_size_z_, idx % grid_size_z_);
     }
 
-    __device__  bool GridMap::mapQuery(const Vector3d &pos){
+    // -1: z越界; 0: 空闲; 1: 占据
+    __device__  int GridMap::mapQuery(const Vector3f &pos){
         Vector3i vox = Pos2Vox(pos);
         while (vox.x > grid_size_x_)
             vox.x -= grid_size_x_;
         while (vox.y > grid_size_y_)
             vox.y -= grid_size_y_;
-        while (vox.z > grid_size_z_)
-            vox.z -= grid_size_z_;
         while (vox.x < 0)
             vox.x += grid_size_x_;
         while (vox.y < 0)
             vox.y += grid_size_y_;
-        while (vox.z < 0)
-            vox.z += grid_size_z_;
-        int idx = Vox2Idx(vox);
+        while (vox.z > grid_size_z_ || vox.z < 0)
+            return -1;
 
-        return map_cuda_[idx] > occupy_threshold;
+        int idx = Vox2Idx(vox);
+        if (map_cuda_[idx] > occupy_threshold_)
+            return 1;
+        return 0;        
     }
 
-    __global__ void raycastKernel(float* depth_values, GridMap grid_map, CameraParams camera_param)
+    __global__ void cameraRaycastKernel(float* depth_values, GridMap grid_map, CameraParams camera_param, cudaMat::SE3<float> T_wc)
     {
         int u = threadIdx.x;
         int v = blockIdx.x;
@@ -97,7 +112,7 @@ namespace raycast
             float z = -(v - camera_param.cy) / camera_param.fy;
             float x = 1.0f;
 
-            // 归一化射线方向
+            // 归一化射线方向 TODO:变到世界系
             float length = sqrtf(x * x + y * y + z * z);
             x /= length;
             y /= length;
@@ -119,12 +134,26 @@ namespace raycast
                 float point_x = scale * dx;
                 float point_y = scale * dy;
                 float point_z = scale * dz;
-                Vector3d point(point_x, point_y, point_z);
 
-                bool occupied = grid_map.mapQuery(point);
+                float3 point_c = make_float3(point_x, point_y, point_z);
+                float3 point_w = T_wc * point_c;
+
+                Vector3f point(point_w.x, point_w.y, point_w.z);
+
+                int occupied = grid_map.mapQuery(point);
 
                 float ray_length = sqrtf(point_x * point_x + point_y * point_y + point_z * point_z);
-                if (occupied || ray_length > camera_param.max_depth_dist){
+
+                if (occupied == 1)
+                {
+                    depth = point_x;
+                    break;
+                }
+
+                if (ray_length > camera_param.max_depth_dist || occupied == -1){
+                    if (camera_param.normalize_depth)
+                        ray_length = ray_length / camera_param.max_depth_dist;
+                    
                     depth = ray_length;
                     break;
                 }
@@ -135,33 +164,19 @@ namespace raycast
         }
     }
 
-    cv::Mat rayCast(GridMap* grid_map, CameraParams* camera_param)
+    cv::Mat renderDepthImage(GridMap* grid_map, CameraParams* camera_param, cudaMat::SE3<float>& T_wc)
     {   
-        cudaEvent_t start, stop;
-        cudaEventCreate(&start);
-        cudaEventCreate(&stop);
-        cudaEventRecord(start);
-
-        // 分配内存来存储射线方向
         float* depth_values;
         size_t num_elements = camera_param->image_width * camera_param->image_height;
         cudaMallocManaged(&depth_values, num_elements * sizeof(float));
 
         // 在GPU上启动核函数
-        raycastKernel<<<camera_param->image_height, camera_param->image_width>>>(depth_values, *grid_map, *camera_param);
+        cameraRaycastKernel<<<camera_param->image_height, camera_param->image_width>>>(depth_values, *grid_map, *camera_param, T_wc);
         
-        // 同步线程，确保所有计算完成
         cudaDeviceSynchronize();
-
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
-        float milliseconds = 0;
-        cudaEventElapsedTime(&milliseconds, start, stop);
-        std::cout << "rayCast execution time: " << milliseconds << " ms" << std::endl;
 
         cv::Mat depth_image(camera_param->image_height, camera_param->image_width, CV_32FC1);
 
-        // 将 depth_values 数据复制到 Mat 中
         for (int i = 0; i < camera_param->image_height; ++i) {
             for (int j = 0; j < camera_param->image_width; ++j) {
                 depth_image.at<float>(i, j) = depth_values[i * camera_param->image_width + j];
@@ -169,8 +184,95 @@ namespace raycast
         }
         
         cudaFree(depth_values);
-
         return depth_image;
     }
 
+    __global__ void lidarRaycastKernel(Vector3f* point_values, GridMap grid_map, LidarParams lidar_param, cudaMat::SE3<float> T_wc)
+    {
+        int h = threadIdx.x;
+        int v = blockIdx.x;
+
+        // printf("u: %d, v: %d \n", u, v);
+        if (h < lidar_param.horizontal_num && v < lidar_param.vertical_lines)
+        {   
+            float vertical_resolution = (lidar_param.vertical_angle_end - lidar_param.vertical_angle_start) / (lidar_param.vertical_lines - 1);
+            float vertical_angle = lidar_param.vertical_angle_start + v * vertical_resolution;
+            float sin_vert = std::sin(vertical_angle * M_PI / 180.0);
+            float cos_vert = std::cos(vertical_angle * M_PI / 180.0);
+            float horizontal_angle = h * lidar_param.horizontal_resolution;
+            float sin_horz = std::sin(horizontal_angle * M_PI / 180.0);
+            float cos_horz = std::cos(horizontal_angle * M_PI / 180.0);
+            // 计算射线方向
+            Vector3f ray_direction(cos_vert * cos_horz, cos_vert * sin_horz, sin_vert);
+
+            // 计算每个轴的增量比例
+            float dx = ray_direction.x * grid_map.raycast_step_;
+            float dy = ray_direction.y * grid_map.raycast_step_;
+            float dz = ray_direction.z * grid_map.raycast_step_;
+
+            // 递增射线方向上的每个轴
+            int scale = 0;
+            Vector3f point_value(0, 0, 0);
+
+            while (1)
+            {
+                scale += 1;
+
+                float point_x = scale * dx;
+                float point_y = scale * dy;
+                float point_z = scale * dz;
+
+                float3 point_c = make_float3(point_x, point_y, point_z);
+                float3 point_w = T_wc * point_c;
+
+                Vector3f point(point_w.x, point_w.y, point_w.z);
+
+                int occupied = grid_map.mapQuery(point);
+
+                float ray_length = sqrtf(point_x * point_x + point_y * point_y + point_z * point_z);
+
+                if (occupied == 1)
+                {
+                    point_value = Vector3f(point_x, point_y, point_z);
+                    Vector3i vox_body = grid_map.Pos2Vox(point_value);  // 栅格化避免平面变曲面
+                    point_value = grid_map.Vox2Pos(vox_body);
+                    break;
+                }
+
+                if (ray_length > lidar_param.max_lidar_dist || occupied == -1){
+                    break;
+                }
+            }
+
+            // 将点云值存储到输出数组中，(0, 0, 0)为无效值
+            point_values[v * lidar_param.horizontal_num + h] = point_value;
+        }
+    }
+
+    pcl::PointCloud<pcl::PointXYZ> renderLidarPointcloud(GridMap *grid_map, LidarParams *lidar_param, cudaMat::SE3<float>& T_wc){
+        Vector3f* point_values;
+        size_t num_elements = lidar_param->vertical_lines * lidar_param->horizontal_num;
+        cudaMallocManaged(&point_values, num_elements * sizeof(Vector3f));
+
+        // 在GPU上启动核函数
+        lidarRaycastKernel<<<lidar_param->vertical_lines, lidar_param->horizontal_num>>>(point_values, *grid_map, *lidar_param, T_wc);
+        
+        cudaDeviceSynchronize();
+
+        pcl::PointCloud<pcl::PointXYZ> lidar_points;
+
+        for (int i = 0; i < lidar_param->vertical_lines; ++i) {
+            for (int j = 0; j < lidar_param->horizontal_num; ++j) {
+                Vector3f point = point_values[i * lidar_param->horizontal_num + j];
+                if (point.x != 0 || point.y != 0 || point.z != 0)
+                    lidar_points.points.push_back(pcl::PointXYZ(point.x, point.y, point.z));
+            }
+        }
+        
+        cudaFree(point_values);
+        return lidar_points;
+    }
+
+
+    
 }

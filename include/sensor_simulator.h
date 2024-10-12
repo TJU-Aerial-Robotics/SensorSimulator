@@ -38,7 +38,7 @@ public:
         vertical_lines = config["lidar"]["vertical_lines"].as<int>();
         vertical_angle_start = config["lidar"]["vertical_angle_start"].as<float>();
         vertical_angle_end = config["lidar"]["vertical_angle_end"].as<float>();
-        horizontal_angle = config["lidar"]["horizontal_angle"].as<int>();
+        horizontal_num = config["lidar"]["horizontal_num"].as<int>();
         horizontal_resolution = config["lidar"]["horizontal_resolution"].as<float>();
         max_lidar_dist = config["lidar"]["max_lidar_dist"].as<float>();
 
@@ -126,11 +126,11 @@ private:
     bool normalize_depth{false};
 
     // lidar param
-    int vertical_lines = 16; // 纵向16线
+    int vertical_lines = 16;            // 纵向16线
     float vertical_angle_start = -15.0; // 起始垂直角度
-    float vertical_angle_end = 15.0; // 结束垂直角度
-    int horizontal_angle = 360; // 水平360线
-    float horizontal_resolution = 1.0; // 水平分辨率为1度
+    float vertical_angle_end = 15.0;    // 结束垂直角度
+    int horizontal_num = 360;           // 水平360点
+    float horizontal_resolution = 1.0;  // 水平分辨率为1度
     float max_lidar_dist{50};
 
 

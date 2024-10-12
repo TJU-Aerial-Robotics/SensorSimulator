@@ -68,7 +68,7 @@ pcl::PointCloud<pcl::PointXYZ> SensorSimulator::renderLidarPointcloud() {
         float sin_vert = std::sin(vertical_angle * M_PI / 180.0);
         float cos_vert = std::cos(vertical_angle * M_PI / 180.0);
 
-        for (int h = 0; h < horizontal_angle; ++h) {
+        for (int h = 0; h < horizontal_num; ++h) {
             float horizontal_angle = h * horizontal_resolution;
             float sin_horz = std::sin(horizontal_angle * M_PI / 180.0);
             float cos_horz = std::cos(horizontal_angle * M_PI / 180.0);

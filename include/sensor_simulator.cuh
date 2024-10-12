@@ -2,17 +2,22 @@
 #define CUDA_UTILS_CUH
 
 #include <cuda_runtime.h>
+#include "cuda_toolkit/se3.cuh"
 #include <cmath>
+#include <vector>
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <pcl/common/common.h> // For pcl::getMinMax3D
+#include <pcl/point_cloud.h>   // For pcl::PointCloud
+#include <pcl/point_types.h>   // For pcl::PointXYZ
 
 namespace raycast
 {
-    struct Vector3d
+    struct Vector3f
     {
         float x, y, z;
-        __device__ __host__ Vector3d() : x(0.0f), y(0.0f), z(0.0f) {}
-        __device__ __host__ Vector3d(float x_val, float y_val, float z_val)
+        __device__ __host__ Vector3f() : x(0.0f), y(0.0f), z(0.0f) {}
+        __device__ __host__ Vector3f(float x_val, float y_val, float z_val)
             : x(x_val), y(y_val), z(z_val) {}
     };
 
@@ -41,7 +46,7 @@ namespace raycast
         int vertical_lines = 16;            // 纵向16线
         float vertical_angle_start = -15.0; // 起始垂直角度
         float vertical_angle_end = 15.0;    // 结束垂直角度
-        int horizontal_angle = 360;         // 水平360线
+        int horizontal_num = 360;           // 水平360点
         float horizontal_resolution = 1.0;  // 水平分辨率为1度
         float max_lidar_dist{50};
     };
@@ -49,13 +54,14 @@ namespace raycast
     class GridMap
     {
         public:
-            GridMap(Vector3d origin, double resolution, Vector3d map_size);
-            ~GridMap() { cudaFree(map_cuda_); };
-            __device__ Vector3i Pos2Vox(const Vector3d &pos);
-            __device__ Vector3d Vox2Pos(const Vector3i &vox);
-            __device__ int Vox2Idx(const Vector3i &vox);
-            __device__ Vector3i Idx2Vox(int idx);
-            __device__ bool mapQuery(const Vector3d &pos);
+            GridMap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float resolution, int occupy_threshold);
+            ~GridMap() {};
+            void freeGridMap() {cudaFree(map_cuda_);}
+            __host__ __device__ Vector3i Pos2Vox(const Vector3f &pos);
+            __host__ __device__ Vector3f Vox2Pos(const Vector3i &vox);
+            __host__ __device__ int Vox2Idx(const Vector3i &vox);
+            __host__ __device__ Vector3i Idx2Vox(int idx);
+            __device__ int mapQuery(const Vector3f &pos);
 
             float raycast_step_; // raycast step
         private:
@@ -64,12 +70,13 @@ namespace raycast
             float resolution_;                                           // grid resolution
             float origin_x_, origin_y_, origin_z_;                       // origin coordinates
             int grid_size_x_, grid_size_y_, grid_size_z_, grid_size_yz_; // grid sizes
-            int occupy_threshold;                                        // occupancy threshold
+            int occupy_threshold_;                                        // occupancy threshold
     };
 
-    __global__ void raycastKernel(float *depth_values, GridMap grid_map, CameraParams camera_param);
+    __global__ void cameraRaycastKernel(float *depth_values, GridMap grid_map, CameraParams camera_param, cudaMat::SE3<float> T_wc);
+    __global__ void lidarRaycastKernel(Vector3f* point_values, GridMap grid_map, LidarParams lidar_param, cudaMat::SE3<float> T_wc);
 
-    cv::Mat rayCast(GridMap *grid_map, CameraParams *camera_param);
-
+    cv::Mat renderDepthImage(GridMap *grid_map, CameraParams *camera_param, cudaMat::SE3<float>& T_wc);
+    pcl::PointCloud<pcl::PointXYZ> renderLidarPointcloud(GridMap *grid_map, LidarParams *lidar_param, cudaMat::SE3<float>& T_wc);
 }
 #endif // CUDA_UTILS_CUH
