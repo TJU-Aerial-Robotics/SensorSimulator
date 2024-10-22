@@ -1,5 +1,5 @@
 ply_file: "/home/lu/4.swarm_mission/SensorSimulator/src/SensorSimulator/realworld.ply"
-odom_topic: "/odom"
+odom_topic: "/sim/odom"
 depth_topic: "/depth_image"
 lidar_topic: "/lidar_points"
 
@@ -23,6 +23,7 @@ camera:
   image_height: 90
   max_depth_dist: 20.0
   normalize_depth: false
+  pitch: -0.0          # 相机相对机体的俯仰角 (仰为负)
 
 lidar:
   vertical_lines: 16             # 纵向16线

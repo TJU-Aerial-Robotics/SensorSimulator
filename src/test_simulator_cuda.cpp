@@ -32,6 +32,8 @@ public:
         camera->image_height = config["camera"]["image_height"].as<int>();
         camera->max_depth_dist = config["camera"]["max_depth_dist"].as<float>();
         camera->normalize_depth = config["camera"]["normalize_depth"].as<bool>();
+        float pitch = config["camera"]["pitch"].as<float>() * M_PI / 180.0;
+        quat_bc = Eigen::AngleAxisf(pitch, Eigen::Vector3f::UnitY());
 
         // 读取lidar参数
         lidar = new LidarParams();
@@ -83,6 +85,7 @@ private:
     bool render_lidar{false};
     bool odom_init{false};
     Eigen::Quaternionf quat;
+    Eigen::Quaternionf quat_bc, quat_wc;
     Eigen::Vector3f pos;
 
     CameraParams* camera;
@@ -102,7 +105,7 @@ void SensorSimulator::timerDepthCallback(const ros::TimerEvent&) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    cudaMat::SE3<float> T_wc(quat.w(), quat.x(), quat.y(), quat.z(), pos.x(), pos.y(), pos.z());
+    cudaMat::SE3<float> T_wc(quat_wc.w(), quat_wc.x(), quat_wc.y(), quat_wc.z(), pos.x(), pos.y(), pos.z());
     cv::Mat depth_image;
     depth_image = renderDepthImage(grid_map, camera, T_wc);
     
@@ -145,6 +148,7 @@ void SensorSimulator::odomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
     quat.y() = msg->pose.pose.orientation.y;
     quat.z() = msg->pose.pose.orientation.z;
     quat.w() = msg->pose.pose.orientation.w;
+    quat_wc = quat * quat_bc;
 
     pos.x() = msg->pose.pose.position.x;
     pos.y() = msg->pose.pose.position.y;
