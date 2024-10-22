@@ -23,7 +23,7 @@ camera:
   image_height: 90
   max_depth_dist: 20.0
   normalize_depth: false
-  pitch: -0.0          # 相机相对机体的俯仰角 (仰为负)
+  pitch: -0.0          # 相机相对机体的俯仰角 (仰为负, cpu版尚未添加)
 
 lidar:
   vertical_lines: 16             # 纵向16线
