@@ -6,7 +6,7 @@ import tf
 
 def publish_odometry():
     rospy.init_node('odom_publisher', anonymous=True)
-    odom_pub = rospy.Publisher('/odom', Odometry, queue_size=10)
+    odom_pub = rospy.Publisher('/sim/odom', Odometry, queue_size=10)
     rate = rospy.Rate(30)  # 30 Hz
 
     odom_msg = Odometry()

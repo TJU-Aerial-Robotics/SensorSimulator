@@ -149,10 +149,13 @@ namespace raycast
 
                 if (occupied == 1)
                 {
-                    Vector3f point_body = Vector3f(point_x, point_y, point_z);
-                    Vector3i vox_body = grid_map.Pos2Vox(point_body);  // 栅格化避免平面变曲面
-                    point_body = grid_map.Vox2Pos(vox_body);
-                    depth = point_body.x;
+                    // depth = point_x;  // 直接这样赋值会有一点误差
+                    // 栅格化避免平面变曲面 (有些冗余，但在机体系栅格化会有类似摩尔纹的东西)
+                    Vector3i occ_vox_w = grid_map.Pos2Vox(point);
+                    Vector3f occ_point_w = grid_map.Vox2Pos(occ_vox_w);
+                    float3 occ_point_w_ = make_float3(occ_point_w.x, occ_point_w.y, occ_point_w.z);
+                    float3 occ_point_c_ = T_wc.inv() * occ_point_w_;
+                    depth = occ_point_c_.x;
                     break;
                 }
 
