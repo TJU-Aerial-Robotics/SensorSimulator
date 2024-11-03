@@ -61,6 +61,7 @@ namespace raycast
             __host__ __device__ Vector3f Vox2Pos(const Vector3i &vox);
             __host__ __device__ int Vox2Idx(const Vector3i &vox);
             __host__ __device__ Vector3i Idx2Vox(int idx);
+            __device__ int symmetricIndex(int index, int length);
             __device__ int mapQuery(const Vector3f &pos);
 
             float raycast_step_; // raycast step

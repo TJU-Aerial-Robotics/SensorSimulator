@@ -78,17 +78,26 @@ namespace raycast
         return Vector3i(idx / grid_size_yz_, (idx % grid_size_yz_) / grid_size_z_, idx % grid_size_z_);
     }
 
+    __device__ int GridMap::symmetricIndex(int index, int length)
+    {
+        index = index % (2 * length - 2);
+        if (index < 0)
+        {
+            index += (2 * length - 2);
+        }
+
+        if (index >= length)
+        {
+            index = 2 * length - 2 - index;
+        }
+        return index;
+    }
+
     // -1: z越界; 0: 空闲; 1: 占据
     __device__  int GridMap::mapQuery(const Vector3f &pos){
         Vector3i vox = Pos2Vox(pos);
-        while (vox.x > grid_size_x_)
-            vox.x -= grid_size_x_;
-        while (vox.y > grid_size_y_)
-            vox.y -= grid_size_y_;
-        while (vox.x < 0)
-            vox.x += grid_size_x_;
-        while (vox.y < 0)
-            vox.y += grid_size_y_;
+        vox.x = symmetricIndex(vox.x, grid_size_x_);
+        vox.y = symmetricIndex(vox.y, grid_size_y_);
 
         if (vox.z > grid_size_z_)
             return 0;
