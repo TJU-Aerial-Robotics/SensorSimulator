@@ -34,11 +34,10 @@ rviz -d rviz.rviz
 
 **其他工具：**
 ```
-1. 点云裁剪：map_process.py
-2. 点云扩充：map_expand.py
+点云裁剪、滤波预处理：cloudcompare软件
 ```
 
-**demo:**
+**DEMO:** 
 
 cpu 版本 (i7-9700)：
 深度图0.02s, 点云0.01s
@@ -46,7 +45,14 @@ cpu 版本 (i7-9700)：
 gpu 版本 (GTX3060)：
 深度图0.001s, 点云0.001s
 
-![Demo GIF](demo.gif)
+**1. Forest**
+![Demo GIF](img/forest.png)
+**2. Building**
+![Demo GIF](img/building.png)
+**3. GIF**
+![Demo GIF](img/demo.gif)
+
+more environments are coming...
 
 **注释:**
 1. CPU版本地图有边界（可选择复制地图几份），GPU版本无边界
