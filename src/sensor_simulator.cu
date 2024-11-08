@@ -166,7 +166,7 @@ namespace raycast
                     break;
                 }
 
-                if (point_x > camera_param.max_depth_dist){
+                if (point_x >= camera_param.max_depth_dist){
                     depth = camera_param.max_depth_dist;
                     break;
                 }
