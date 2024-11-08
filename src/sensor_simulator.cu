@@ -154,8 +154,6 @@ namespace raycast
 
                 int occupied = grid_map.mapQuery(point);
 
-                float ray_length = sqrtf(point_x * point_x + point_y * point_y + point_z * point_z);
-
                 if (occupied == 1)
                 {
                     // depth = point_x;  // 直接这样赋值会有一点误差
@@ -168,16 +166,15 @@ namespace raycast
                     break;
                 }
 
-                if (ray_length > camera_param.max_depth_dist){
-                    if (camera_param.normalize_depth)
-                        ray_length = ray_length / camera_param.max_depth_dist;
-                    
-                    depth = ray_length;
+                if (point_x > camera_param.max_depth_dist){
+                    depth = camera_param.max_depth_dist;
                     break;
                 }
             }
 
             // 将深度值存储到输出数组中
+            if (camera_param.normalize_depth)
+                depth = depth / camera_param.max_depth_dist;
             depth_values[v * camera_param.image_width + u] = depth;
         }
     }
