@@ -5,13 +5,14 @@ namespace raycast
     GridMap::GridMap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float resolution, int occupy_threshold = 1){
         
         Eigen::Vector4f min_pt, max_pt;
+        printf("2.1 \n");
         pcl::getMinMax3D(*cloud, min_pt, max_pt);
         float length = max_pt(0) - min_pt(0);  // X方向的长度
         float width = max_pt(1) - min_pt(1);   // Y方向的宽度
         float height = max_pt(2) - min_pt(2);  // Z方向的高度
         Vector3f origin(min_pt(0), min_pt(1), min_pt(2));
         Vector3f map_size(length, width, height);
-
+        printf("2.2 \n");
         origin_x_ = origin.x;
         origin_y_ = origin.y;
         origin_z_ = origin.z;
@@ -30,7 +31,7 @@ namespace raycast
         grid_size_yz_ = grid_size.y * grid_size.z;
         occupy_threshold_ = occupy_threshold;
         raycast_step_ = resolution;
-
+        printf("2.3 \n");
         int *h_map = new int[grid_total_size];
         for (int i = 0; i < grid_total_size; ++i)
         {
@@ -43,10 +44,11 @@ namespace raycast
             int idx = Vox2Idx(Pos2Vox(point));
             h_map[idx]++;
         }
-
+        printf("2.4 %d \n",grid_total_size);
         cudaMalloc((void **)&map_cuda_, grid_total_size * sizeof(int));
-        cudaMemcpy(map_cuda_, h_map, grid_total_size * sizeof(int), cudaMemcpyHostToDevice);
-
+        printf("2.5 \n");
+        // cudaMemcpy(map_cuda_, h_map, grid_total_size * sizeof(int), cudaMemcpyHostToDevice);
+        printf("2.6 \n");
         delete[] h_map;
     }
 

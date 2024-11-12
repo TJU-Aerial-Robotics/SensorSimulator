@@ -15,6 +15,8 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 #include "sensor_simulator.cuh"
+#include <chrono>
+#include "maps.hpp"
 
 using namespace raycast;
 
@@ -56,12 +58,39 @@ public:
 
         float resolution = config["resolution"].as<float>();
         int occupy_threshold = config["occupy_threshold"].as<int>();
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
-        printf("1.Reading Point Cloud... \n");
-        if (pcl::io::loadPLYFile(ply_file, *cloud) == -1) {
-            PCL_ERROR("Couldn't read PLY file \n");
-        }
+        pcl_pub = nh.advertise<sensor_msgs::PointCloud2>("mock_map", 1);
+        int seed = config["seed"].as<int>();
+        double scale = config["resolution"].as<double>();
+        int sizeX = config["x_length"].as<int>();
+        int sizeY = config["y_length"].as<int>();
+        int sizeZ = config["z_length"].as<int>();
+        int type = config["maze_type"].as<int>();
+        scale = 1 / scale;
+        sizeX = sizeX * scale;
+        sizeY = sizeY * scale;
+        sizeZ = sizeZ * scale;
+
+        pcl::PointCloud<pcl::PointXYZ>* cloud_ptr = new pcl::PointCloud<pcl::PointXYZ>();
+        sensor_msgs::PointCloud2       output;
+        mocka::Maps::BasicInfo info;
+        info.sizeX      = sizeX;
+        info.sizeY      = sizeY;
+        info.sizeZ      = sizeZ;
+        info.seed       = seed;
+        info.scale      = scale;
+        info.output     = &output;
+        info.cloud      = cloud_ptr;
+
+        mocka::Maps map;
+        map.setInfo(info);
+        map.generate(type);
+        // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+        // printf("1.Reading Point Cloud... \n");
+        // if (pcl::io::loadPLYFile(ply_file, *cloud) == -1) {
+        //     PCL_ERROR("Couldn't read PLY file \n");
+        // }
         printf("2.Reading OK! Mapping... \n");
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(cloud_ptr);
         grid_map = new GridMap(cloud, resolution, occupy_threshold);
 
         // ROS
@@ -94,9 +123,13 @@ private:
     
     ros::NodeHandle nh_;
     ros::Publisher image_pub_, point_cloud_pub_;
+    ros::Publisher pcl_pub;
     ros::Subscriber odom_sub_;
     ros::Timer timer_depth_, timer_lidar_;
+
+    // mocka::Maps map;
 };
+
 
 
 void SensorSimulator::timerDepthCallback(const ros::TimerEvent&) {
@@ -130,6 +163,8 @@ void SensorSimulator::timerLidarCallback(const ros::TimerEvent&) {
 
     cudaMat::SE3<float> T_wc(quat.w(), quat.x(), quat.y(), quat.z(), pos.x(), pos.y(), pos.z());
     pcl::PointCloud<pcl::PointXYZ> lidar_points;
+
+
     lidar_points = renderLidarPointcloud(grid_map, lidar, T_wc);
     
     auto end = std::chrono::high_resolution_clock::now();
