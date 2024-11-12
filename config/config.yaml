@@ -19,7 +19,7 @@ resolution: 0.1
 x_length: 20
 y_length: 20
 z_length: 2
-maze_type: 3
+maze_type: 1
 
 camera:
   fx: 80.0             # focal length x

@@ -1,8 +1,6 @@
 #ifndef MAPS_HPP
 #define MAPS_HPP
 
-#include <ros/ros.h>
-
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -17,7 +15,6 @@ public:
     int sizeZ;
     int seed;
     double scale;
-    sensor_msgs::PointCloud2 *output;
     pcl::PointCloud<pcl::PointXYZ> *cloud;
   } BasicInfo;
 
@@ -36,8 +33,6 @@ private:
   BasicInfo info;
 
 private:
-  void pcl2ros();
-
   void perlin3D();
   void maze2D();
   void randomMapGenerate();

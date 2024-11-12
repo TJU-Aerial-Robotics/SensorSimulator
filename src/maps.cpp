@@ -86,17 +86,6 @@ Maps::randomMapGenerate()
   info.cloud->width    = info.cloud->points.size();
   info.cloud->height   = 1;
   info.cloud->is_dense = true;
-
-  pcl2ros();
-}
-
-void
-Maps::pcl2ros()
-{
-  pcl::toROSMsg(*info.cloud, *info.output);
-  info.output->header.frame_id = "map";
-  ROS_INFO("finish: infill %lf%%",
-           info.cloud->width / (1.0 * info.sizeX * info.sizeY * info.sizeZ));
 }
 
 void
@@ -142,7 +131,7 @@ Maps::perlin3D()
   std::sort(v->begin(), v->end());
   int    tpos = info.cloud->width * (1 - fill);
   double tmp  = v->at(tpos);
-  ROS_INFO("threshold: %lf", tmp);
+  printf("threshold: %lf", tmp);
 
   int pos = 0;
   for (int i = 0; i < info.sizeX; ++i)
@@ -173,15 +162,14 @@ Maps::perlin3D()
     }
   }
   info.cloud->width = pos;
-  ROS_INFO("the number of points before optimization is %d", info.cloud->width);
+  printf("the number of points before optimization is %d", info.cloud->width);
   info.cloud->points.resize(info.cloud->width * info.cloud->height);
-  pcl2ros();
 }
 
 void
 Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
 {
-  ROS_INFO(
+  printf(
     "generating maze with width %d , height %d", xh - xl + 1, yh - yl + 1);
 
   if (xl < xh - 3 && yl < yh - 3)
@@ -190,7 +178,7 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
     bool valid = false; // used to judge whether the wall selection is valid
     int  xm    = 0;
     int  ym    = 0;
-    ROS_INFO("entered 5*5 mode");
+    printf("entered 5*5 mode");
     while (valid == false)
     {
       xm = (std::rand() % (xh - xl - 1) + xl +
@@ -313,7 +301,7 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
     recursiveDivision(xl, xm - 1, ym + 1, yh, maze);
     recursiveDivision(xm + 1, xh, ym + 1, yh, maze);
 
-    ROS_INFO("finished generating maze with width %d , height %d",
+    printf("finished generating maze with width %d , height %d",
              xh - xl + 1,
              yh - yl + 1);
     std::cout << maze << std::endl;
@@ -413,7 +401,7 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
     } // the doors are opened for this cell
     std::cout << maze << std::endl;
 
-    ROS_INFO("finished generating maze with width %d , height %d",
+    printf("finished generating maze with width %d , height %d",
              xh - xl + 1,
              yh - yl + 1);
     std::cout << maze << std::endl;
@@ -422,7 +410,7 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
 
   else if (xl < xh - 1 && yl < yh - 2)
   { // the case of 3*4+
-    ROS_INFO("entered 3*4+ mode");
+    printf("entered 3*4+ mode");
     int doorcount = 0;
     int ym        = 0;
     for (int i = yl; i <= yh; i++)
@@ -454,7 +442,7 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
   //
   else if (xl < xh - 2 && yl < yh - 1)
   { // the case of 4+*3
-    ROS_INFO("entered 4+*3 mode");
+    printf("entered 4+*3 mode");
     int doorcount = 0;
     int xm        = 0;
     for (int i = xl; i <= xh; i++)
@@ -491,7 +479,7 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
   }
   else
   {
-    ROS_INFO("finished generating maze with width %d , height %d",
+    printf("finished generating maze with width %d , height %d",
              xh - xl + 1,
              yh - yl + 1);
     return;
@@ -517,7 +505,7 @@ Maps::recursizeDivisionMaze(Eigen::MatrixXi& maze)
   else
     return;
 
-  ROS_INFO("debug %d %d %d %d", sx, sy, px, py);
+  printf("debug %d %d %d %d", sx, sy, px, py);
 
   int x1, x2, y1, y2;
 
@@ -540,7 +528,7 @@ Maps::recursizeDivisionMaze(Eigen::MatrixXi& maze)
     y2 = (std::rand() % (sy - py - 3) + py + 1);
   else
     y2 = py + 1;
-  ROS_INFO("%d %d %d %d", x1, x2, y1, y2);
+  printf("%d %d %d %d", x1, x2, y1, y2);
 
   if (px != 1 && px != (sx - 2))
   {
@@ -674,7 +662,6 @@ Maps::maze2D()
   info.cloud->width    = info.cloud->points.size();
   info.cloud->height   = 1;
   info.cloud->is_dense = true;
-  pcl2ros();
 }
 
 Maps::BasicInfo
@@ -789,7 +776,7 @@ Maps::Maze3DGen()
   // info.nh_private->param("connectivity", connectivity, 0.5);
   // info.nh_private->param("nodeRad", nodeRad, 3);
   // info.nh_private->param("roadRad", roadRad, 2);
-  ROS_INFO("received parameters : numNodes: %d connectivity: "
+  printf("received parameters : numNodes: %d connectivity: "
            "%f nodeRad: %d roadRad: %d",
            numNodes,
            connectivity,
@@ -809,7 +796,7 @@ Maps::Maze3DGen()
     double rz = std::rand() / RAND_MAX +
                 (std::rand() % info.sizeZ) / info.scale -
                 info.sizeZ / (2 * info.scale);
-    ROS_INFO("point: x: %f , y: %f , z: %f", rx, ry, rz);
+    printf("point: x: %f , y: %f , z: %f", rx, ry, rz);
 
     pcl::PointXYZ pt_random;
     pt_random.x = rx;
@@ -889,7 +876,6 @@ Maps::Maze3DGen()
 
   info.cloud->width  = info.cloud->points.size();
   info.cloud->height = 1;
-  ROS_INFO("the number of points before optimization is %d", info.cloud->width);
+  printf("the number of points before optimization is %d", info.cloud->width);
   info.cloud->points.resize(info.cloud->width * info.cloud->height);
-  pcl2ros();
 }

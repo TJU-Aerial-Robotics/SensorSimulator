@@ -71,14 +71,12 @@ public:
         sizeZ = sizeZ * scale;
 
         pcl::PointCloud<pcl::PointXYZ>* cloud_ptr = new pcl::PointCloud<pcl::PointXYZ>();
-        sensor_msgs::PointCloud2       output;
         mocka::Maps::BasicInfo info;
         info.sizeX      = sizeX;
         info.sizeY      = sizeY;
         info.sizeZ      = sizeZ;
         info.seed       = seed;
         info.scale      = scale;
-        info.output     = &output;
         info.cloud      = cloud_ptr;
 
         mocka::Maps map;
