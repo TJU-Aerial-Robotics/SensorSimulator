@@ -10,6 +10,7 @@
 #include <pcl/common/common.h> // For pcl::getMinMax3D
 #include <pcl/point_cloud.h>   // For pcl::PointCloud
 #include <pcl/point_types.h>   // For pcl::PointXYZ
+#include <chrono>
 
 namespace raycast
 {
@@ -53,31 +54,31 @@ namespace raycast
 
     class GridMap
     {
-        public:
-            GridMap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float resolution, int occupy_threshold);
-            ~GridMap() {};
-            void freeGridMap() {cudaFree(map_cuda_);}
-            __host__ __device__ Vector3i Pos2Vox(const Vector3f &pos);
-            __host__ __device__ Vector3f Vox2Pos(const Vector3i &vox);
-            __host__ __device__ int Vox2Idx(const Vector3i &vox);
-            __host__ __device__ Vector3i Idx2Vox(int idx);
-            __device__ int symmetricIndex(int index, int length);
-            __device__ int mapQuery(const Vector3f &pos);
+    public:
+        GridMap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float resolution, int occupy_threshold);
+        ~GridMap() {};
+        void freeGridMap() { cudaFree(map_cuda_); }
+        __host__ __device__ Vector3i Pos2Vox(const Vector3f &pos);
+        __host__ __device__ Vector3f Vox2Pos(const Vector3i &vox);
+        __host__ __device__ int Vox2Idx(const Vector3i &vox);
+        __host__ __device__ Vector3i Idx2Vox(int idx);
+        __device__ int symmetricIndex(int index, int length);
+        __device__ int mapQuery(const Vector3f &pos);
 
-            float raycast_step_; // raycast step
-        private:
-            // map param
-            int *map_cuda_;
-            float resolution_;                                           // grid resolution
-            float origin_x_, origin_y_, origin_z_;                       // origin coordinates
-            int grid_size_x_, grid_size_y_, grid_size_z_, grid_size_yz_; // grid sizes
-            int occupy_threshold_;                                        // occupancy threshold
+        float raycast_step_; // raycast step
+    private:
+        // map param
+        int *map_cuda_;
+        float resolution_;                                           // grid resolution
+        float origin_x_, origin_y_, origin_z_;                       // origin coordinates
+        int grid_size_x_, grid_size_y_, grid_size_z_, grid_size_yz_; // grid sizes
+        int occupy_threshold_;                                       // occupancy threshold
     };
 
     __global__ void cameraRaycastKernel(float *depth_values, GridMap grid_map, CameraParams camera_param, cudaMat::SE3<float> T_wc);
-    __global__ void lidarRaycastKernel(Vector3f* point_values, GridMap grid_map, LidarParams lidar_param, cudaMat::SE3<float> T_wc);
+    __global__ void lidarRaycastKernel(Vector3f *point_values, GridMap grid_map, LidarParams lidar_param, cudaMat::SE3<float> T_wc);
 
-    cv::Mat renderDepthImage(GridMap *grid_map, CameraParams *camera_param, cudaMat::SE3<float>& T_wc);
-    pcl::PointCloud<pcl::PointXYZ> renderLidarPointcloud(GridMap *grid_map, LidarParams *lidar_param, cudaMat::SE3<float>& T_wc);
+    cv::Mat renderDepthImage(GridMap *grid_map, CameraParams *camera_param, cudaMat::SE3<float> &T_wc);
+    pcl::PointCloud<pcl::PointXYZ> renderLidarPointcloud(GridMap *grid_map, LidarParams *lidar_param, cudaMat::SE3<float> &T_wc);
 }
 #endif // CUDA_UTILS_CUH
