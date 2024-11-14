@@ -28,10 +28,8 @@ namespace raycast
         grid_size_yz_ = grid_size.y * grid_size.z;
         occupy_threshold_ = occupy_threshold;
         raycast_step_ = resolution;
-        int *h_map = new int[grid_total_size];
-        for (int i = 0; i < grid_total_size; ++i) {
-            h_map[i] = 0;
-        }
+
+        std::vector<int> h_map(grid_total_size, 0);
         // 有时候会有全空的行，加个很小的偏移
         for (size_t i = 0; i < cloud->points.size(); i++) {
             Vector3f point(cloud->points[i].x + 0.001, cloud->points[i].y + 0.001, cloud->points[i].z + 0.001);
@@ -41,8 +39,7 @@ namespace raycast
             }
         }
         cudaMalloc((void **)&map_cuda_, grid_total_size * sizeof(int));
-        cudaMemcpy(map_cuda_, h_map, grid_total_size * sizeof(int), cudaMemcpyHostToDevice);
-        delete[] h_map;
+        cudaMemcpy(map_cuda_, h_map.data(), grid_total_size * sizeof(int), cudaMemcpyHostToDevice);
     }
 
     __host__ __device__ Vector3i GridMap::Pos2Vox(const Vector3f &pos)
