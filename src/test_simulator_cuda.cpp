@@ -50,12 +50,14 @@ public:
         render_depth = config["render_depth"].as<bool>();
         float depth_fps = config["depth_fps"].as<float>();
         float lidar_fps = config["lidar_fps"].as<float>();
-
+        
         std::string ply_file = config["ply_file"].as<std::string>();
         std::string odom_topic = config["odom_topic"].as<std::string>();
         std::string depth_topic = config["depth_topic"].as<std::string>();
         std::string lidar_topic = config["lidar_topic"].as<std::string>();
 
+        // 读取地图参数
+        bool use_random_map = config["random_map"].as<bool>();
         float resolution = config["resolution"].as<float>();
         int occupy_threshold = config["occupy_threshold"].as<int>();
         pcl_pub = nh.advertise<sensor_msgs::PointCloud2>("mock_map", 1);
@@ -69,25 +71,29 @@ public:
         sizeY = sizeY * scale;
         sizeZ = sizeZ * scale;
 
-        pcl::PointCloud<pcl::PointXYZ>* cloud_temp = new pcl::PointCloud<pcl::PointXYZ>();
-        mocka::Maps::BasicInfo info;
-        info.sizeX      = sizeX;
-        info.sizeY      = sizeY;
-        info.sizeZ      = sizeZ;
-        info.seed       = seed;
-        info.scale      = scale;
-        info.cloud      = cloud_temp;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+        if (use_random_map) {
+            printf("1.Generate Random Map... \n");
+            mocka::Maps::BasicInfo info;
+            info.sizeX      = sizeX;
+            info.sizeY      = sizeY;
+            info.sizeZ      = sizeZ;
+            info.seed       = seed;
+            info.scale      = scale;
+            info.cloud      = cloud;
 
-        mocka::Maps map;
-        map.setInfo(info);
-        map.generate(type);
-        // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
-        // printf("1.Reading Point Cloud... \n");
-        // if (pcl::io::loadPLYFile(ply_file, *cloud) == -1) {
-        //     PCL_ERROR("Couldn't read PLY file \n");
-        // }
-        printf("2.Reading/Generate OK! Mapping... \n");
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(cloud_temp);
+            mocka::Maps map;
+            map.setInfo(info);
+            map.generate(type);
+        }
+        else {
+            printf("1.Reading Point Cloud %s... \n", ply_file.c_str());
+            if (pcl::io::loadPLYFile(ply_file, *cloud) == -1) {
+                PCL_ERROR("Couldn't read PLY file \n");
+            }
+        }
+        printf("2.Mapping... \n");
+        
         grid_map = new GridMap(cloud, resolution, occupy_threshold);
 
         // ROS

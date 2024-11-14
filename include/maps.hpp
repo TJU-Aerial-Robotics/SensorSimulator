@@ -15,7 +15,7 @@ public:
     int sizeZ;
     int seed;
     double scale;
-    pcl::PointCloud<pcl::PointXYZ> *cloud;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
   } BasicInfo;
 
   BasicInfo getInfo() const;

@@ -8,6 +8,7 @@ depth_fps: 30
 render_lidar: true
 lidar_fps: 10
 
+random_map: true       # 使用点云地图还是随机地图
 resolution: 0.1        # 地图分辨率
 
 # 点云地图
