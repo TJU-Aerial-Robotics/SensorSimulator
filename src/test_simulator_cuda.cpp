@@ -93,8 +93,10 @@ public:
                 PCL_ERROR("Couldn't read PLY file \n");
             }
         }
+        pcl::toROSMsg(*cloud, output);
+        output.header.frame_id = "world";
+
         printf("2.Mapping... \n");
-        
         grid_map = new GridMap(cloud, resolution, occupy_threshold);
 
         // ROS
@@ -103,13 +105,9 @@ public:
         odom_sub_ = nh_.subscribe(odom_topic, 1, &SensorSimulator::odomCallback, this);
         timer_depth_ = nh_.createTimer(ros::Duration(1 / depth_fps), &SensorSimulator::timerDepthCallback, this);
         timer_lidar_ = nh_.createTimer(ros::Duration(1 / lidar_fps), &SensorSimulator::timerLidarCallback, this);
+        timer_map_   = nh_.createTimer(ros::Duration(1), &SensorSimulator::timerMapCallback, this);
+
         printf("3.Simulation Ready! \n");
-
-        sensor_msgs::PointCloud2 output;
-        pcl::toROSMsg(*cloud, output);
-        output.header.frame_id = "world";
-        pcl_pub.publish(output);
-
         ros::spin();
     }
 
@@ -118,6 +116,8 @@ public:
     void timerDepthCallback(const ros::TimerEvent &);
 
     void timerLidarCallback(const ros::TimerEvent &);
+
+    void timerMapCallback(const ros::TimerEvent &);
 
 private:
     bool render_depth{false};
@@ -130,12 +130,13 @@ private:
     CameraParams* camera;
     LidarParams* lidar;
     GridMap* grid_map;
+    sensor_msgs::PointCloud2 output;
     
     ros::NodeHandle nh_;
     ros::Publisher image_pub_, point_cloud_pub_;
     ros::Publisher pcl_pub;
     ros::Subscriber odom_sub_;
-    ros::Timer timer_depth_, timer_lidar_;
+    ros::Timer timer_depth_, timer_lidar_, timer_map_;
 
     // mocka::Maps map;
 };
@@ -164,6 +165,12 @@ void SensorSimulator::timerDepthCallback(const ros::TimerEvent&) {
     cv_image.toImageMsg(ros_image);
     image_pub_.publish(ros_image);
 }
+
+void SensorSimulator::timerMapCallback(const ros::TimerEvent&) {
+    if (pcl_pub.getNumSubscribers() > 0)
+        pcl_pub.publish(output);    
+}
+
 
 void SensorSimulator::timerLidarCallback(const ros::TimerEvent&) {
     if (!odom_init || !render_lidar)

@@ -22,18 +22,18 @@ seed: 1
 x_length: 40
 y_length: 40
 z_length: 4
-maze_type: 3           # 1: 溶洞 2: 柱子 3:迷宫
+maze_type: 1           # 1: 溶洞 2: 柱子 3:迷宫
 # 溶洞
-complexity: 0.03
-fill: 0.03
+complexity: 0.03       # 复杂的 0.0-0.5
+fill: 0.1              # 填充率 0.0-0.4
 fractal: 1
 attenuation: 0.1
 # 柱子
 width_min: 0.6
 width_max: 1.5
-obstacle_number: 50
+obstacle_number: 100
 # 迷宫
-road_width: 2.5
+road_width: 3
 add_wall_x: 1
 add_wall_y: 1
 

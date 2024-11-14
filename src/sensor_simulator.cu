@@ -94,9 +94,9 @@ namespace raycast
         vox.x = symmetricIndex(vox.x, grid_size_x_);
         vox.y = symmetricIndex(vox.y, grid_size_y_);
 
-        if (vox.z > grid_size_z_)
+        if (vox.z >= grid_size_z_)
             return 0;
-        if (vox.z < 0)
+        if (vox.z <= 0)
             return 1;
 
         int idx = Vox2Idx(vox);
