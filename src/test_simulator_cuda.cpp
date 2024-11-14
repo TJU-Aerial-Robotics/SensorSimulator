@@ -60,24 +60,23 @@ public:
         int occupy_threshold = config["occupy_threshold"].as<int>();
         pcl_pub = nh.advertise<sensor_msgs::PointCloud2>("mock_map", 1);
         int seed = config["seed"].as<int>();
-        double scale = config["resolution"].as<double>();
         int sizeX = config["x_length"].as<int>();
         int sizeY = config["y_length"].as<int>();
         int sizeZ = config["z_length"].as<int>();
         int type = config["maze_type"].as<int>();
-        scale = 1 / scale;
+        double scale = 1 / resolution;
         sizeX = sizeX * scale;
         sizeY = sizeY * scale;
         sizeZ = sizeZ * scale;
 
-        pcl::PointCloud<pcl::PointXYZ>* cloud_ptr = new pcl::PointCloud<pcl::PointXYZ>();
+        pcl::PointCloud<pcl::PointXYZ>* cloud_temp = new pcl::PointCloud<pcl::PointXYZ>();
         mocka::Maps::BasicInfo info;
         info.sizeX      = sizeX;
         info.sizeY      = sizeY;
         info.sizeZ      = sizeZ;
         info.seed       = seed;
         info.scale      = scale;
-        info.cloud      = cloud_ptr;
+        info.cloud      = cloud_temp;
 
         mocka::Maps map;
         map.setInfo(info);
@@ -87,8 +86,8 @@ public:
         // if (pcl::io::loadPLYFile(ply_file, *cloud) == -1) {
         //     PCL_ERROR("Couldn't read PLY file \n");
         // }
-        printf("2.Reading OK! Mapping... \n");
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(cloud_ptr);
+        printf("2.Reading/Generate OK! Mapping... \n");
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(cloud_temp);
         grid_map = new GridMap(cloud, resolution, occupy_threshold);
 
         // ROS
@@ -98,6 +97,12 @@ public:
         timer_depth_ = nh_.createTimer(ros::Duration(1 / depth_fps), &SensorSimulator::timerDepthCallback, this);
         timer_lidar_ = nh_.createTimer(ros::Duration(1 / lidar_fps), &SensorSimulator::timerLidarCallback, this);
         printf("3.Simulation Ready! \n");
+
+        sensor_msgs::PointCloud2 output;
+        pcl::toROSMsg(*cloud, output);
+        output.header.frame_id = "world";
+        pcl_pub.publish(output);
+
         ros::spin();
     }
 

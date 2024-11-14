@@ -131,7 +131,7 @@ Maps::perlin3D()
   std::sort(v->begin(), v->end());
   int    tpos = info.cloud->width * (1 - fill);
   double tmp  = v->at(tpos);
-  printf("threshold: %lf", tmp);
+  // printf("threshold: %lf", tmp);
 
   int pos = 0;
   for (int i = 0; i < info.sizeX; ++i)
@@ -162,15 +162,15 @@ Maps::perlin3D()
     }
   }
   info.cloud->width = pos;
-  printf("the number of points before optimization is %d", info.cloud->width);
+  // printf("the number of points before optimization is %d", info.cloud->width);
   info.cloud->points.resize(info.cloud->width * info.cloud->height);
 }
 
 void
 Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
 {
-  printf(
-    "generating maze with width %d , height %d", xh - xl + 1, yh - yl + 1);
+  // printf(
+  //   "generating maze with width %d , height %d", xh - xl + 1, yh - yl + 1);
 
   if (xl < xh - 3 && yl < yh - 3)
   { // the remaining area is larger than or equal to 5*5, need to add both x
@@ -178,7 +178,7 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
     bool valid = false; // used to judge whether the wall selection is valid
     int  xm    = 0;
     int  ym    = 0;
-    printf("entered 5*5 mode");
+    // printf("entered 5*5 mode");
     while (valid == false)
     {
       xm = (std::rand() % (xh - xl - 1) + xl +
@@ -295,16 +295,16 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
       }
     }
 
-    std::cout << maze << std::endl;
+    // std::cout << maze << std::endl;
     recursiveDivision(xl, xm - 1, yl, ym - 1, maze);
     recursiveDivision(xm + 1, xh, yl, ym - 1, maze);
     recursiveDivision(xl, xm - 1, ym + 1, yh, maze);
     recursiveDivision(xm + 1, xh, ym + 1, yh, maze);
 
-    printf("finished generating maze with width %d , height %d",
-             xh - xl + 1,
-             yh - yl + 1);
-    std::cout << maze << std::endl;
+    // printf("finished generating maze with width %d , height %d",
+    //          xh - xl + 1,
+    //          yh - yl + 1);
+    // std::cout << maze << std::endl;
     return;
   } // when the remaining area is larger than or equal to 5*5
 
@@ -399,18 +399,18 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
         maze(xm, d4) = 0;
         break;
     } // the doors are opened for this cell
-    std::cout << maze << std::endl;
+    // std::cout << maze << std::endl;
 
-    printf("finished generating maze with width %d , height %d",
-             xh - xl + 1,
-             yh - yl + 1);
-    std::cout << maze << std::endl;
+    // printf("finished generating maze with width %d , height %d",
+            //  xh - xl + 1,
+            //  yh - yl + 1);
+    // std::cout << maze << std::endl;
     return;
   }
 
   else if (xl < xh - 1 && yl < yh - 2)
   { // the case of 3*4+
-    printf("entered 3*4+ mode");
+    // printf("entered 3*4+ mode");
     int doorcount = 0;
     int ym        = 0;
     for (int i = yl; i <= yh; i++)
@@ -442,7 +442,7 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
   //
   else if (xl < xh - 2 && yl < yh - 1)
   { // the case of 4+*3
-    printf("entered 4+*3 mode");
+    // printf("entered 4+*3 mode");
     int doorcount = 0;
     int xm        = 0;
     for (int i = xl; i <= xh; i++)
@@ -479,9 +479,9 @@ Maps::recursiveDivision(int xl, int xh, int yl, int yh, Eigen::MatrixXi& maze)
   }
   else
   {
-    printf("finished generating maze with width %d , height %d",
-             xh - xl + 1,
-             yh - yl + 1);
+    // printf("finished generating maze with width %d , height %d",
+    //          xh - xl + 1,
+    //          yh - yl + 1);
     return;
   }
 }
@@ -505,7 +505,7 @@ Maps::recursizeDivisionMaze(Eigen::MatrixXi& maze)
   else
     return;
 
-  printf("debug %d %d %d %d", sx, sy, px, py);
+  // printf("debug %d %d %d %d", sx, sy, px, py);
 
   int x1, x2, y1, y2;
 
@@ -528,7 +528,7 @@ Maps::recursizeDivisionMaze(Eigen::MatrixXi& maze)
     y2 = (std::rand() % (sy - py - 3) + py + 1);
   else
     y2 = py + 1;
-  printf("%d %d %d %d", x1, x2, y1, y2);
+  // printf("%d %d %d %d", x1, x2, y1, y2);
 
   if (px != 1 && px != (sx - 2))
   {
@@ -632,7 +632,7 @@ Maps::maze2D()
     }
   }
 
-  std::cout << maze << std::endl;
+  // std::cout << maze << std::endl;
 
   for (int i = 0; i < mx; ++i)
   {
@@ -776,12 +776,12 @@ Maps::Maze3DGen()
   // info.nh_private->param("connectivity", connectivity, 0.5);
   // info.nh_private->param("nodeRad", nodeRad, 3);
   // info.nh_private->param("roadRad", roadRad, 2);
-  printf("received parameters : numNodes: %d connectivity: "
-           "%f nodeRad: %d roadRad: %d",
-           numNodes,
-           connectivity,
-           nodeRad,
-           roadRad);
+  // printf("received parameters : numNodes: %d connectivity: "
+  //          "%f nodeRad: %d roadRad: %d",
+  //          numNodes,
+  //          connectivity,
+  //          nodeRad,
+  //          roadRad);
   // generating random points
   std::vector<pcl::PointXYZ> base;
 
@@ -796,7 +796,7 @@ Maps::Maze3DGen()
     double rz = std::rand() / RAND_MAX +
                 (std::rand() % info.sizeZ) / info.scale -
                 info.sizeZ / (2 * info.scale);
-    printf("point: x: %f , y: %f , z: %f", rx, ry, rz);
+    // printf("point: x: %f , y: %f , z: %f", rx, ry, rz);
 
     pcl::PointXYZ pt_random;
     pt_random.x = rx;
@@ -876,6 +876,6 @@ Maps::Maze3DGen()
 
   info.cloud->width  = info.cloud->points.size();
   info.cloud->height = 1;
-  printf("the number of points before optimization is %d", info.cloud->width);
+  // printf("the number of points before optimization is %d", info.cloud->width);
   info.cloud->points.resize(info.cloud->width * info.cloud->height);
 }

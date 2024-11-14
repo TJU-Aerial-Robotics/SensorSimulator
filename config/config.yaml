@@ -1,4 +1,3 @@
-ply_file: "/home/xlw/open_source_code/Sensor_Simulator_ws/src/SensorSimulator/realworld.ply"
 odom_topic: "/sim/odom"
 depth_topic: "/depth_image"
 lidar_topic: "/lidar_points"
@@ -9,18 +8,22 @@ depth_fps: 30
 render_lidar: true
 lidar_fps: 10
 
+resolution: 0.1        # 地图分辨率
+
+# 点云地图
+ply_file: "/home/lu/4.swarm_mission/SensorSimulator/src/SensorSimulator/realworld.ply"
 expand_x_times: 0      # x方向复制次数（cuda版不使用）
 expand_y_times: 0      # y方向复制次数（cuda版不使用）
-resolution: 0.1        # 地图分辨率
 occupy_threshold: 0    # 大于多少个点才认为占据（cpu版不使用）
 
+# 随机地图
 seed: 66
-resolution: 0.1
-x_length: 20
-y_length: 20
-z_length: 2
-maze_type: 1
+x_length: 40
+y_length: 40
+z_length: 4
+maze_type: 3           # 1: 溶洞 2: 柱子 3:迷宫
 
+# 传感器参数
 camera:
   fx: 80.0             # focal length x
   fy: 80.0             # focal length y

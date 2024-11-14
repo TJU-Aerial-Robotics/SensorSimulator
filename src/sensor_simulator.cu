@@ -5,14 +5,12 @@ namespace raycast
     GridMap::GridMap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float resolution, int occupy_threshold = 1){
         
         Eigen::Vector4f min_pt, max_pt;
-        printf("2.1 \n");
         pcl::getMinMax3D(*cloud, min_pt, max_pt);
-        float length = max_pt(0) - min_pt(0);  // X方向的长度
-        float width = max_pt(1) - min_pt(1);   // Y方向的宽度
-        float height = max_pt(2) - min_pt(2);  // Z方向的高度
+        float length = max_pt(0) - min_pt(0);   // X方向的长度
+        float width  = max_pt(1) - min_pt(1);   // Y方向的宽度
+        float height = max_pt(2) - min_pt(2);   // Z方向的高度
         Vector3f origin(min_pt(0), min_pt(1), min_pt(2));
         Vector3f map_size(length, width, height);
-        printf("2.2 \n");
         origin_x_ = origin.x;
         origin_y_ = origin.y;
         origin_z_ = origin.z;
@@ -21,34 +19,29 @@ namespace raycast
         grid_size.x = ceil(map_size.x / resolution);
         grid_size.y = ceil(map_size.y / resolution);
         grid_size.z = ceil(map_size.z / resolution);
-
         int grid_total_size = grid_size.x * grid_size.y * grid_size.z;
 
-        resolution_ = resolution;
-        grid_size_x_ = grid_size.x, 
-        grid_size_y_ = grid_size.y, 
-        grid_size_z_ = grid_size.z, 
+        resolution_   = resolution;
+        grid_size_x_  = grid_size.x, 
+        grid_size_y_  = grid_size.y, 
+        grid_size_z_  = grid_size.z, 
         grid_size_yz_ = grid_size.y * grid_size.z;
         occupy_threshold_ = occupy_threshold;
         raycast_step_ = resolution;
-        printf("2.3 \n");
         int *h_map = new int[grid_total_size];
-        for (int i = 0; i < grid_total_size; ++i)
-        {
+        for (int i = 0; i < grid_total_size; ++i) {
             h_map[i] = 0;
         }
-
-        for (size_t i = 0; i < cloud->points.size(); i++)
-        {
-            Vector3f point(cloud->points[i].x, cloud->points[i].y, cloud->points[i].z);
+        // 有时候会有全空的行，加个很小的偏移
+        for (size_t i = 0; i < cloud->points.size(); i++) {
+            Vector3f point(cloud->points[i].x + 0.001, cloud->points[i].y + 0.001, cloud->points[i].z + 0.001);
             int idx = Vox2Idx(Pos2Vox(point));
-            h_map[idx]++;
+            if (idx < grid_total_size) {
+                h_map[idx]++;
+            }
         }
-        printf("2.4 %d \n",grid_total_size);
         cudaMalloc((void **)&map_cuda_, grid_total_size * sizeof(int));
-        printf("2.5 \n");
-        // cudaMemcpy(map_cuda_, h_map, grid_total_size * sizeof(int), cudaMemcpyHostToDevice);
-        printf("2.6 \n");
+        cudaMemcpy(map_cuda_, h_map, grid_total_size * sizeof(int), cudaMemcpyHostToDevice);
         delete[] h_map;
     }
 
