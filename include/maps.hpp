@@ -1,6 +1,6 @@
 #ifndef MAPS_HPP
 #define MAPS_HPP
-
+#include <yaml-cpp/yaml.h>
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -20,19 +20,25 @@ public:
 
   BasicInfo getInfo() const;
   void setInfo(const BasicInfo &value);
-
-public:
-  Maps(){
-    
-  }
-
-public:
+  void setParam(const YAML::Node& config);
+  Maps() {}
   void generate(int type);
 
 private:
   BasicInfo info;
+  // perlin3D
+  double complexity;
+  double fill;
+  int    fractal;
+  double attenuation;
+  // randomMap
+  double _w_l, _w_h;
+  int    _ObsNum;
+  // maze2D
+  double width;
+  int    addWallX;
+  int    addWallY;
 
-private:
   void perlin3D();
   void maze2D();
   void randomMapGenerate();

@@ -18,11 +18,24 @@ expand_y_times: 0      # y方向复制次数（cuda版不使用）
 occupy_threshold: 0    # 大于多少个点才认为占据（cpu版不使用）
 
 # 随机地图
-seed: 66
+seed: 1
 x_length: 40
 y_length: 40
 z_length: 4
 maze_type: 3           # 1: 溶洞 2: 柱子 3:迷宫
+# 溶洞
+complexity: 0.03
+fill: 0.03
+fractal: 1
+attenuation: 0.1
+# 柱子
+width_min: 0.6
+width_max: 1.5
+obstacle_number: 50
+# 迷宫
+road_width: 2.5
+add_wall_x: 1
+add_wall_y: 1
 
 # 传感器参数
 camera:

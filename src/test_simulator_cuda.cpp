@@ -83,6 +83,7 @@ public:
             info.cloud      = cloud;
 
             mocka::Maps map;
+            map.setParam(config);
             map.setInfo(info);
             map.generate(type);
         }
