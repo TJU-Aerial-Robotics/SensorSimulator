@@ -1,14 +1,5 @@
 #include "maps.hpp"
 
-#include <algorithm>
-#include <iostream>
-#include <random>
-#include <vector>
-
-#include <Eigen/Core>
-
-#include "perlinnoise.hpp"
-
 using namespace mocka;
 
 void
@@ -669,6 +660,12 @@ Maps::setParam(const YAML::Node& config)
   // tree
   tree_file = config["tree_file"].as<std::string>();
   tree_dist = config["tree_dist"].as<double>();
+  // room
+  room_number = config["room_number"].as<int>();
+  max_windows = config["max_windows"].as<int>();
+  add_ceiling = config["add_ceiling"].as<int>();
+  window_size_min = config["window_size_min"].as<double>();
+  window_size_max = config["window_size_max"].as<double>();
 }
 
 
@@ -694,6 +691,9 @@ Maps::generate(int type)
       break;
     case 5:
       forest();
+      break;
+    case 6:
+      room();
       break;
   }
 }
@@ -950,7 +950,7 @@ void Maps::scaleAndTranslateCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, flo
   pcl::transformPointCloud(*cloud, *cloud, transform);
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr Maps::generateGround(const pcl::PointCloud<pcl::PointXYZ>::Ptr &forest_cloud, float grid_size)
+pcl::PointCloud<pcl::PointXYZ>::Ptr Maps::generateGround(const pcl::PointCloud<pcl::PointXYZ>::Ptr &forest_cloud, float grid_size, float hight)
 {
   pcl::PointXYZ min_point, max_point;
   pcl::getMinMax3D(*forest_cloud, min_point, max_point);
@@ -964,8 +964,136 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Maps::generateGround(const pcl::PointCloud<p
   {
     for (float y = y_min; y <= y_max; y += grid_size)
     {
-      ground_cloud->emplace_back(x, y, 0.0f);
+      ground_cloud->emplace_back(x, y, hight);
     }
   }
   return ground_cloud;
+}
+
+/* --------------------- My: Room --------------------- */
+void Maps::room()
+{
+  double _resolution = 1 / info.scale;
+  double room_L = info.sizeX / (info.scale * (double)room_number);
+  double room_W = 0.2;
+  double room_H = info.sizeZ / info.scale;
+
+  Eigen::Matrix3f rotation0 = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitZ()).matrix();         // 0度旋转
+  Eigen::Matrix3f rotation90 = Eigen::AngleAxisf(M_PI / 2, Eigen::Vector3f::UnitZ()).matrix(); // 90度旋转
+  Eigen::Vector3f translation;
+
+  window_eng = std::default_random_engine(info.seed);
+  std::uniform_int_distribution<int> random_window(0, 100);
+  dis_window_x = std::uniform_real_distribution<double>(0.1, 0.9); // 窗口中心取值范围
+  dis_window_z = std::uniform_real_distribution<double>(0.1, 0.9);
+  dis_window_size = std::uniform_real_distribution<double>(window_size_min, window_size_max);
+
+  // 按网格排列生成墙体
+  for (int i = 0; i < room_number + 1; ++i)
+  {
+    for (int j = 0; j < room_number + 1; ++j)
+    {
+      // 水平墙（0度旋转）
+      if (i < room_number)
+      {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr base_wall(new pcl::PointCloud<pcl::PointXYZ>);
+        int num_windows = random_window(window_eng) % max_windows + 1; // 随机数量 1 到 max_windows
+        generateWallWithWindows(base_wall, room_L, room_W, room_H, num_windows);
+
+        translation = Eigen::Vector3f(i * room_L, j * room_L, 0);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_wall0(new pcl::PointCloud<pcl::PointXYZ>);
+        transformPointCloud(base_wall, transformed_wall0, rotation0, translation);
+        *info.cloud += *transformed_wall0;
+      }
+
+      // 垂直墙（90度旋转）
+      if (j < room_number)
+      {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr base_wall(new pcl::PointCloud<pcl::PointXYZ>);
+        int num_windows = random_window(window_eng) % max_windows + 1; // 随机数量 1 到 max_windows
+        generateWallWithWindows(base_wall, room_L, room_W, room_H, num_windows);
+
+        translation = Eigen::Vector3f(i * room_L, j * room_L, 0);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_wall90(new pcl::PointCloud<pcl::PointXYZ>);
+        transformPointCloud(base_wall, transformed_wall90, rotation90, translation);
+        *info.cloud += *transformed_wall90;
+      }
+    }
+  }
+  if (add_ceiling)
+  {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr ground_cloud = generateGround(info.cloud, _resolution);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr ceiling_cloud = generateGround(info.cloud, _resolution, room_H - _resolution);
+    *info.cloud += *ground_cloud;
+    *info.cloud += *ceiling_cloud;
+  }
+  info.cloud->width = info.cloud->points.size();
+  info.cloud->height = 1;
+  info.cloud->is_dense = true;
+}
+
+// 生成带窗户的基础墙体
+void Maps::generateWallWithWindows(pcl::PointCloud<pcl::PointXYZ>::Ptr wall, float L, float W, float H, int num_windows)
+{
+  // 存储每个窗户的位置和大小
+  std::vector<std::tuple<float, float, float, float>> windows; // (x, z, width, height)
+
+  // 随机生成窗户
+  for (int i = 0; i < num_windows; ++i)
+  {
+    float window_x = dis_window_x(window_eng) * (L - 0.5); // 窗口的中心x坐标
+    float window_z = dis_window_z(window_eng) * (H - 0.5); // 窗口的中心z坐标
+    float window_width = dis_window_size(window_eng);      // 窗口宽度
+    float window_height = dis_window_size(window_eng);     // 窗口高度
+
+    // 确保窗口宽度和高度不会超过墙体的尺寸
+    window_width = std::min(window_width, L - window_x);
+    window_height = std::min(window_height, H - window_z);
+
+    // 计算窗口的边界，基于中心坐标计算
+    float window_x_left = window_x - window_width / 2.0f;
+    float window_z_bottom = window_z - window_height / 2.0f;
+
+    windows.emplace_back(window_x_left, window_z_bottom, window_width, window_height);
+  }
+
+  // 生成墙体点云并避开窗口区域
+  for (float x = 0; x <= L; x += 0.1f)
+  {
+    for (float y = 0; y <= W; y += 0.1f)
+    {
+      for (float z = 0; z <= H; z += 0.1f)
+      {
+        bool is_in_window = false;
+
+        // 检查当前点是否在任一窗口区域内
+        for (const auto &win : windows)
+        {
+          float win_x_left, win_z_bottom, win_width, win_height;
+          std::tie(win_x_left, win_z_bottom, win_width, win_height) = win;
+
+          if ((x >= win_x_left && x <= win_x_left + win_width) &&
+              (z >= win_z_bottom && z <= win_z_bottom + win_height))
+          {
+            is_in_window = true;
+            break;
+          }
+        }
+
+        if (!is_in_window)
+        {
+          wall->points.emplace_back(x, y, z);
+        }
+      }
+    }
+  }
+}
+
+void Maps::transformPointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud,
+                               const Eigen::Matrix3f &rotation, const Eigen::Vector3f &translation)
+{
+  Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+  transform.linear() = rotation;
+  transform.translation() = translation;
+  pcl::transformPointCloud(*input_cloud, *transformed_cloud, transform);
 }

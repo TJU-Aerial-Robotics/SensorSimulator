@@ -9,6 +9,7 @@ sudo apt-get install libyaml-cpp-dev
 
 **编译：**
 ```angular2html
+git clone --depth 1 https://github.com/TJU-Aerial-Robotics/SensorSimulator
 catkin build
 ```
 

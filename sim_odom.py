@@ -14,7 +14,7 @@ def publish_odometry():
     odom_msg.child_frame_id = "base_link"
 
     x_position = 0.0
-    y_position = 10.0
+    y_position = 2.0
     z_position = 1.6
     velocity = 2.0  # m/s
 

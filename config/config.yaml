@@ -22,7 +22,7 @@ seed: 1
 x_length: 40
 y_length: 40
 z_length: 6
-maze_type: 5           # 1: 溶洞 2: 柱子 3:迷宫 5:森林
+maze_type: 5           # 1: 溶洞 2: 柱子 3:迷宫 5:森林 6:房间
 # 溶洞
 complexity: 0.02       # 复杂的 0.0-0.5
 fill: 0.1              # 填充率 0.0-0.4
@@ -39,6 +39,12 @@ add_wall_y: 1
 # 森林
 tree_file: "/home/lu/4.swarm_mission/SensorSimulator/src/SensorSimulator/pointcloud/tree.ply"
 tree_dist: 8
+# 房间
+room_number: 4         # 每个方向上的房间数 (房间大小 = x_length / room_number)
+max_windows: 2         # 每面墙最多窗口数
+window_size_min: 2.0
+window_size_max: 2.8
+add_ceiling: 0         # 是否添加天花板
 
 # 传感器参数
 camera:
