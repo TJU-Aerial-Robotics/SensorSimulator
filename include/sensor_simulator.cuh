@@ -10,6 +10,7 @@
 #include <pcl/common/common.h> // For pcl::getMinMax3D
 #include <pcl/point_cloud.h>   // For pcl::PointCloud
 #include <pcl/point_types.h>   // For pcl::PointXYZ
+#include <chrono>
 
 namespace raycast
 {

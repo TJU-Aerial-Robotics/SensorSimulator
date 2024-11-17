@@ -12,7 +12,7 @@ random_map: true       # 使用点云地图还是随机地图
 resolution: 0.1        # 地图分辨率
 
 # 点云地图
-ply_file: "/home/lu/4.swarm_mission/SensorSimulator/src/SensorSimulator/realworld.ply"
+ply_file: "/home/lu/4.swarm_mission/SensorSimulator/src/SensorSimulator/pointcloud/forest.ply"
 expand_x_times: 0      # x方向复制次数（cuda版不使用）
 expand_y_times: 0      # y方向复制次数（cuda版不使用）
 occupy_threshold: 0    # 大于多少个点才认为占据（cpu版不使用）
@@ -21,10 +21,10 @@ occupy_threshold: 0    # 大于多少个点才认为占据（cpu版不使用）
 seed: 1
 x_length: 40
 y_length: 40
-z_length: 4
-maze_type: 1           # 1: 溶洞 2: 柱子 3:迷宫
+z_length: 6
+maze_type: 5           # 1: 溶洞 2: 柱子 3:迷宫 5:森林
 # 溶洞
-complexity: 0.03       # 复杂的 0.0-0.5
+complexity: 0.02       # 复杂的 0.0-0.5
 fill: 0.1              # 填充率 0.0-0.4
 fractal: 1
 attenuation: 0.1
@@ -36,6 +36,9 @@ obstacle_number: 100
 road_width: 3
 add_wall_x: 1
 add_wall_y: 1
+# 森林
+tree_file: "/home/lu/4.swarm_mission/SensorSimulator/src/SensorSimulator/pointcloud/tree.ply"
+tree_dist: 8
 
 # 传感器参数
 camera:

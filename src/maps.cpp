@@ -664,8 +664,11 @@ Maps::setParam(const YAML::Node& config)
   _ObsNum = config["obstacle_number"].as<int>();
   // maze2D
   width = config["road_width"].as<double>();
-  addWallX = config["add_wall_x"].as<int>();;
-  addWallY = config["add_wall_y"].as<int>();;
+  addWallX = config["add_wall_x"].as<int>();
+  addWallY = config["add_wall_y"].as<int>();
+  // tree
+  tree_file = config["tree_file"].as<std::string>();
+  tree_dist = config["tree_dist"].as<double>();
 }
 
 
@@ -688,6 +691,9 @@ Maps::generate(int type)
     case 4: // generating 3d maze
       std::srand(info.seed);
       Maze3DGen();
+      break;
+    case 5:
+      forest();
       break;
   }
 }
@@ -867,4 +873,99 @@ Maps::Maze3DGen()
   info.cloud->height = 1;
   // printf("the number of points before optimization is %d", info.cloud->width);
   info.cloud->points.resize(info.cloud->width * info.cloud->height);
+}
+
+/* --------------------- My: Forest --------------------- */
+void Maps::forest()
+{
+  double _resolution = 1 / info.scale;
+  double map_width = info.sizeX / info.scale;
+  double map_height = info.sizeY / info.scale;
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr tree_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+  if (pcl::io::loadPLYFile(tree_file, *tree_cloud) == -1)
+  {
+    ROS_ERROR("Error: Cannot read the tree PLY file. Please check the config.yaml.");
+    return;
+  }
+
+  // 生成树的泊松分布位置
+  std::vector<Eigen::Vector2f> positions;
+  generatePoissonPoints(map_width, map_height, tree_dist, positions);
+
+  // 生成森林点云
+  pcl::PointCloud<pcl::PointXYZ>::Ptr forest_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+  std::default_random_engine eng(info.seed);
+  std::uniform_real_distribution<float> scale_dist(0.5f, 1.0f);
+  std::uniform_real_distribution<float> random_angle(0.0f, 1.0f);
+
+  for (const auto &pos : positions)
+  {
+    float scale_factor = scale_dist(eng);
+
+    float roll = random_angle(eng) * 10.0f * M_PI / 180.0f;  // 0-10度的 roll 角
+    float pitch = random_angle(eng) * 10.0f * M_PI / 180.0f; // 0-10度的 pitch 角
+    float yaw = random_angle(eng) * 360.0f * M_PI / 180.0f;  // 0-360度的 yaw 角
+
+    Eigen::Matrix3f rotation;
+    rotation = Eigen::AngleAxisf(yaw, Eigen::Vector3f::UnitZ()) * Eigen::AngleAxisf(pitch, Eigen::Vector3f::UnitY()) * Eigen::AngleAxisf(roll, Eigen::Vector3f::UnitX());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_tree(new pcl::PointCloud<pcl::PointXYZ>(*tree_cloud));
+    scaleAndTranslateCloud(transformed_tree, scale_factor, pos, rotation);
+    *info.cloud += *transformed_tree;
+  }
+
+  // 生成地面点云
+  pcl::PointCloud<pcl::PointXYZ>::Ptr ground_cloud = generateGround(info.cloud, _resolution);
+  *info.cloud += *ground_cloud;
+
+  info.cloud->width = info.cloud->points.size();
+  info.cloud->height = 1;
+  info.cloud->is_dense = true;
+}
+
+void Maps::generatePoissonPoints(float map_width, float map_height, float dist, std::vector<Eigen::Vector2f> &positions)
+{
+  int rows = static_cast<int>(map_width / dist);
+  int cols = static_cast<int>(map_height / dist);
+
+  std::default_random_engine eng(info.seed);
+  std::uniform_real_distribution<float> offset_dist(-dist / 2.0f, dist / 2.0f);
+
+  for (int i = 0; i < rows; ++i)
+  {
+    for (int j = 0; j < cols; ++j)
+    {
+      float x = i * dist + offset_dist(eng);
+      float y = j * dist + offset_dist(eng);
+      positions.emplace_back(x, y);
+    }
+  }
+}
+
+void Maps::scaleAndTranslateCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, float scale_factor, Eigen::Vector2f position, Eigen::Matrix3f &rotation)
+{
+  Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+  transform.translation() << position.x(), position.y(), 0.0f;
+  transform.linear() = rotation * Eigen::Matrix3f::Identity() * scale_factor;
+  pcl::transformPointCloud(*cloud, *cloud, transform);
+}
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr Maps::generateGround(const pcl::PointCloud<pcl::PointXYZ>::Ptr &forest_cloud, float grid_size)
+{
+  pcl::PointXYZ min_point, max_point;
+  pcl::getMinMax3D(*forest_cloud, min_point, max_point);
+  float x_min = min_point.x;
+  float x_max = max_point.x;
+  float y_min = min_point.y;
+  float y_max = max_point.y;
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr ground_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+  for (float x = x_min; x <= x_max; x += grid_size)
+  {
+    for (float y = y_min; y <= y_max; y += grid_size)
+    {
+      ground_cloud->emplace_back(x, y, 0.0f);
+    }
+  }
+  return ground_cloud;
 }

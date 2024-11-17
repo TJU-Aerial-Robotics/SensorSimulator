@@ -96,6 +96,7 @@ public:
         pcl::toROSMsg(*cloud, output);
         output.header.frame_id = "world";
 
+        std::cout<<"Pointloud size:"<<info.cloud->points.size()<<std::endl;
         printf("2.Mapping... \n");
         grid_map = new GridMap(cloud, resolution, occupy_threshold);
 
