@@ -48,12 +48,12 @@ add_ceiling: 0         # 是否添加天花板
 
 # 传感器参数
 camera:
-  fx: 80.0             # focal length x
-  fy: 80.0             # focal length y
-  cx: 80.0             # principal point x (image center)
-  cy: 45.0             # principal point y (image center)
-  image_width: 160
-  image_height: 90
+  fx: 160.0             # focal length x
+  fy: 160.0             # focal length y
+  cx: 160.0             # principal point x (image center)
+  cy: 90.0              # principal point y (image center)
+  image_width: 320
+  image_height: 180
   max_depth_dist: 20.0
   normalize_depth: false
   pitch: -0.0          # 相机相对机体的俯仰角 (仰为负, cpu版尚未添加)

@@ -112,20 +112,20 @@ namespace raycast
         if (u < camera_param.image_width && v < camera_param.image_height)
         {
             // 计算射线方向
-            float y = -(u - camera_param.cx) / camera_param.fx;
-            float z = -(v - camera_param.cy) / camera_param.fy;
-            float x = 1.0f;
+            double y = -(u - camera_param.cx) / camera_param.fx;
+            double z = -(v - camera_param.cy) / camera_param.fy;
+            double x = 1.0f;
 
-            // 归一化射线方向 TODO:变到世界系
-            float length = sqrtf(x * x + y * y + z * z);
+            // 归一化射线方向
+            double length = sqrtf(x * x + y * y + z * z);
             x /= length;
             y /= length;
             z /= length;
 
-            // 计算每个轴的增量比例
-            float dx = x * grid_map.raycast_step_;
-            float dy = y * grid_map.raycast_step_;
-            float dz = z * grid_map.raycast_step_;
+            // 计算每个轴的增量比例 (x方向固定步长避免近距离处畸变; double防止偶尔的锯齿)
+            double dx = grid_map.raycast_step_;
+            double dy = (y / x) * dx;
+            double dz = (z / x) * dx;
 
             // 递增射线方向上的每个轴
             int scale = 0;
