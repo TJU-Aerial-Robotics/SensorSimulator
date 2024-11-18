@@ -22,7 +22,7 @@ seed: 1
 x_length: 40
 y_length: 40
 z_length: 6
-maze_type: 5           # 1: 溶洞 2: 柱子 3:迷宫 5:森林 6:房间
+maze_type: 1           # 1: 溶洞 2: 柱子 3:迷宫 5:森林 6:房间
 # 溶洞
 complexity: 0.02       # 复杂的 0.0-0.5
 fill: 0.1              # 填充率 0.0-0.4
