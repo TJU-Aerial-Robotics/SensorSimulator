@@ -112,20 +112,20 @@ namespace raycast
         if (u < camera_param.image_width && v < camera_param.image_height)
         {
             // 计算射线方向
-            double y = -(u - camera_param.cx) / camera_param.fx;
-            double z = -(v - camera_param.cy) / camera_param.fy;
-            double x = 1.0f;
+            float y = -(u - camera_param.cx) / camera_param.fx;
+            float z = -(v - camera_param.cy) / camera_param.fy;
+            float x = 1.0f;
 
             // 归一化射线方向
-            double length = sqrtf(x * x + y * y + z * z);
+            float length = sqrtf(x * x + y * y + z * z);
             x /= length;
             y /= length;
             z /= length;
 
-            // 计算每个轴的增量比例 (x方向固定步长避免近距离处畸变; double防止偶尔的锯齿)
-            double dx = grid_map.raycast_step_;
-            double dy = (y / x) * dx;
-            double dz = (z / x) * dx;
+            // 计算每个轴的增量比例 (x方向固定步长避免近距离处畸变; 0.5是瞎设的防止过于稀疏导致错误)
+            float dx = 0.5 * grid_map.raycast_step_;
+            float dy = (y / x) * dx;
+            float dz = (z / x) * dx;
 
             // 递增射线方向上的每个轴
             int scale = 0;
